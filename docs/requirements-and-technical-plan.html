@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>G.I. Jeff's Files — Requirements and Technical Plan</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172536; background: #f3f6fa; }
+    body { margin: 0; line-height: 1.6; }
+    main { max-width: 980px; margin: auto; padding: 40px 24px 80px; }
+    h1, h2, h3 { line-height: 1.25; }
+    h1 { font-size: 2.2rem; }
+    h2 { margin-top: 2.5rem; }
+    section { background: white; padding: 20px 24px; margin: 20px 0; border: 1px solid #d4dfe9; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #d4dfe9; padding: 12px; }
+    th { background: #edf2f7; }
+    a { color: #165a9d; }
+    .status { font-weight: 600; color: #765100; }
+    code { overflow-wrap: anywhere; }
+    .table-scroll { overflow-x: auto; }
+    @media (max-width: 600px) { main { padding: 20px 12px; } section { padding: 16px; } th, td { padding: 8px; } }
+    @media print { body { background: white; } main { max-width: none; padding: 0; } section { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>G.I. Jeff's Files</h1>
+    <p>Requirements and technical implementation plan</p>
+    <p class="status">Requirements baseline v1 — implementation recommendations and dependencies identified</p>
+    <p>Updated October 5, 2026. Confirmed requirements are distinguished from recommendations and open decisions. This document describes the intended application; the application has not yet been implemented.</p>
+  </header>
+  <nav aria-label="Document contents">
+    <a href="#purpose">Purpose</a> · <a href="#scope">Delivery phases</a> · <a href="#requirements">Requirements</a> · <a href="#architecture">Architecture</a> · <a href="#schema">Data model</a> · <a href="#delivery">Implementation milestones</a> · <a href="#acceptance">Acceptance checks</a> · <a href="#questions">Dependencies and defaults</a>
+  </nav>
+  <section id="purpose">
+    <h2>Purpose and audience</h2>
+    <p>Build with OpenAI Sites in this GitHub repository. Provide a complete reference catalog of G.I. Joe figures, vehicles, playsets, accessories, and related items; personal collection tracking; condition-sensitive price estimates; and, later, collector-to-collector commerce and discussions.</p>
+    <p><strong>Confirmed:</strong> The owner will test with personal research and an actual collection. Launch must also support other users signing in and tracking their own collections. Anonymous visitors can browse only the reference catalog. Signed-in collectors can view public collections and aggregate counts of items in public and private collections, without access to other users' private collection details.</p>
+    <p><strong>Confirmed design:</strong> Use a restrained military-inspired collector interface. Support desktop and mobile fully, prioritizing desktop for the owner's main workflow; make photo uploads and parts checklists usable on phones.</p>
+    <p><strong>Platform constraint verified October 5, 2026:</strong> Current Sites documentation prohibits enabling financial transactions. Commerce cannot be implemented on Sites under this restriction, including assuming hosted payment checkout is a workaround. Preserve the desired marketplace requirements for a separate supported host or a future platform policy change. <a href="https://learn.chatgpt.com/docs/sites">Official Sites documentation</a>.</p>
+  </section>
+  <section id="scope">
+    <h2>Confirmed delivery sequence</h2>
+    <table>
+      <thead><tr><th>Phase</th><th>Scope</th><th>Remaining decisions</th></tr></thead>
+      <tbody>
+        <tr><td>1: Launch</td><td>Reference catalog, search and filters, owner catalog management, ChatGPT sign-in, personal collection tracking, collection visibility controls, signed-in aggregate counts, CSV/JSON import/export, and account deletion.</td><td>Verify platform access and recovery path; prepare representative owner-provided catalog data.</td></tr>
+        <tr><td>Soon after launch: Additional sign-in providers</td><td>Microsoft and Google account/email login alongside ChatGPT sign-in.</td><td>Verify Sites support and account-linking options; clarify whether email login means provider sign-in or email-based codes/passwords.</td></tr>
+        <tr><td>2: Discussions</td><td>Signed-in site and item threads, reporting, owner moderation, in-app notifications, and optional followed-thread email.</td><td>Verify email delivery; apply editing and moderation defaults documented below.</td></tr>
+        <tr><td>3: Identification and valuation</td><td>Photo-assisted identification of single items and loose accessories; price estimates, collection totals, and weekly history.</td><td>Evidence access, model billing, confidence calibration, and scheduled execution. Group-photo identification is deferred.</td></tr>
+        <tr><td>Future: Commerce — on hold</td><td>Requirements retained for future implementation; excluded from current Sites implementation.</td><td>Sites currently prohibits financial transactions. Revisit supported hosting and policies before implementing commerce. Stripe remains a provisional payment candidate.</td></tr>
+      </tbody>
+    </table>
+    <p>“Complete catalog” is the long-term goal. Initial catalog entry and testing will focus on A Real American Hero and 25th Anniversary. The minimum launch dataset and the intended boundaries of A Real American Hero remain to be defined.</p>
+  </section>
+  <section id="requirements">
+    <h2>Confirmed functional requirements</h2>
+    <h3>Reference catalog</h3>
+    <ul>
+      <li>Only the site owner can create or edit reference catalog records.</li>
+      <li>Provide an owner-only catalog editing form and bulk import from CSV and JSON.</li>
+      <li>Catalog entries have a single published state. Successfully saved entries are immediately visible in the reference catalog; no draft/publish workflow is required.</li>
+      <li>Corrections to a published parts list update the reference catalog immediately. Flag affected collection entries for collector review while preserving their recorded quantities.</li>
+      <li>Retire catalog entries from new additions instead of deleting records referenced by collections. Preserve existing holdings and their reference details.</li>
+      <li>Provide owner-only merging of duplicate catalog entries, preserving individual copies, quantities, photos, notes, and history. Retirement is an availability setting, not a draft or publication workflow.</li>
+      <li>The owner handles catalog research and data preparation independently. AI-assisted catalog entry is outside this implementation plan.</li>
+      <li>Catalog fields and applicable search/filter controls include name/character, item type, release year, toy line, series/sub-series, wave, scale, faction, country/market, manufacturer, product number/UPC, and original retail price.</li>
+      <li>Each catalog item supports an array of images and a parts list. Variant is a relationship linking to another catalog item entry, rather than a free-text variant field.</li>
+      <li>Each identifiable release has its own catalog record, including repaints, packaging variants, and international releases. Related records are linked together.</li>
+      <li>Capture each item's parts with names, expected quantities, and part images.</li>
+      <li>Include the primary figure, vehicle, or playset in the parts model so its owned quantity can be zero independently of accessories.</li>
+      <li>A multipack uses the same item-and-parts model as a vehicle with a pilot/driver or a figure with weapons and gear. Its included figures and vehicles are parts; owning the multipack does not require owning every included part. Parts support sub-parts, such as a figure's helmet and rifle, with independently tracked quantities. Links to other figure releases remain to be defined.</li>
+      <li>Support optional file cards, including images and actual text.</li>
+      <li>Other websites are research references, rather than a single authoritative or complete catalog. User-named sources: yojoes.com, 3djoes.com, actionfigure411.com, toys.hisstank.com, and others. Source URLs and reuse permissions have not been verified.</li>
+    </ul>
+    <h3>Personal collections</h3>
+    <ul>
+      <li>A signed-in collector searches the reference catalog and adds a catalog item to their own collection.</li>
+      <li>Each user has exactly one collection, with one collection-wide public/private setting.</li>
+      <li>Use ChatGPT sign-in at launch. Support Microsoft and Google login soon afterward, pending verification of platform capabilities and the intended login flow.</li>
+      <li>Use a public collector display name while keeping login email private. Never expose login email in public profiles, collections, discussion posts, counts, or responses to other collectors.</li>
+      <li>At launch, collectors can export their own data and delete their account. Account deletion removes their collection, photos, and profile. Once discussions exist, retain posts under Deleted collector with personal details removed. Deletion confirmation, processing time, and backup retention must be specified before implementation. Transaction retention will be addressed before any future commerce launch.</li>
+      <li>Track every owned copy separately, allowing different conditions, missing parts, photos, and other details for copies of the same catalog release.</li>
+      <li>Collections default to private. The owner can make a collection public when creating it or change its visibility at any later time.</li>
+      <li>Anonymous visitors cannot browse personal collections, including those marked public. Public collection browsing requires sign-in.</li>
+      <li>Signed-in collectors can see aggregate item counts from both private and public collections, but cannot inspect another collector's private collection or attribute private holdings to that collector.</li>
+      <li>Additional details such as condition and parts are optional when adding an item.</li>
+      <li>Each owned entry supports optional photos, notes, acquisition date, purchase price and currency, purchase source, and storage location.</li>
+      <li>Collection search supports catalog metadata plus condition, completeness, missing parts, storage location, and needs-review status.</li>
+      <li>Always show the search control. Keep filter options collapsed by default and allow the user to expand them.</li>
+      <li>Provide a view of catalog releases the collector does not own. Include releases with parts-only holdings and unconfirmed ownership using appropriate labels. An owned but incomplete multipack is owned for this view, just as a vehicle without its driver or a figure without its weapon is owned.</li>
+      <li>Support collection import and export at launch in CSV and JSON, including individual copies and part quantities. Provide downloadable templates collectors can fill out. Handle photos separately from the data templates.</li>
+      <li>For a public collection, other signed-in collectors can see items, parts, conditions, and photos. Purchase information, storage locations, and private notes remain owner-only. Recommended default: acquisition dates are also owner-only.</li>
+      <li>Adding an item offers a quick choice: Complete, Partial, or Not sure. Complete assumes original retail packaging and all expected parts present; Partial and Not sure initialize quantities as unknown, rather than zero.</li>
+      <li>Unknown quantity and confirmed zero are distinct states. Collectors can refine quantities and details after adding the item. Complete does not imply sealed or any particular physical condition.</li>
+      <li>Offer an optional overall condition grade: Mint, Excellent, Good, Fair, Poor, or Unknown. Provide tooltip guidance for each grade to help collectors choose, accessible through keyboard focus and a tap on touch devices.</li>
+      <li>Allow optional defects and notes on individual parts, such as discoloration, broken tabs, and loose joints. Parts may have their own condition grades.</li>
+      <li>Track boxes, cardbacks, file cards, instructions, and inserts individually, with presence/quantity and their own condition. Track sealed, opened, or unknown status separately.</li>
+      <li>Complete means the item is in its original retail packaging with all expected parts present; this includes boxed and blister-carded releases. Anything less is not complete, including loose items with all toy parts present. Sealed status is recorded separately.</li>
+      <li>Collectors can record owned quantities of individual parts, including zero for the primary object and all other parts. Example: an entry for Snow Job can contain two skis, zero figures, and zero other parts.</li>
+      <li>Collectors can track loose weapons and accessories independently when their associated catalog release is unknown. How these entries become associated with an identified release remains open.</li>
+      <li>Catalog items show figures/sets owned separately from parts-only holdings. Each category shows total owned counts split between public and private collections, plus its distinct collector count. A collector with only Snow Job's skis belongs in the parts-only category. Private owners are not identified.</li>
+      <li>Entries with unconfirmed item ownership appear in a separate Ownership unconfirmed category until item ownership or a parts-only holding is confirmed. They do not inflate confirmed ownership totals. Missing or unknown quantities for some multipack contents do not invalidate otherwise confirmed ownership.</li>
+      <li>Later, collectors can submit a photo to receive likely catalog matches.</li>
+    </ul>
+    <h3>Photo identification</h3>
+    <ul>
+      <li>Initially identify a single figure, vehicle, other catalog item, or loose accessory. Identification of multiple objects in a group photo is deferred.</li>
+      <li>Present ranked catalog candidates with comparison images and reasons for the match.</li>
+      <li>The collector must confirm a candidate before an identified entry is added. Do not automatically assign a catalog release or infer all parts present from a photo.</li>
+      <li>Allow uncertain results to be saved as unidentified inventory with the submitted photo. Support later identification and association with a catalog release or part.</li>
+    </ul>
+    <h3>Valuation and commerce</h3>
+    <ul>
+      <li>Estimate prices for whole figures, vehicles, sets, and individual parts, reflecting condition and completeness. Whole-item and part-level valuation are the working scope; the user's preference for both was tentative.</li>
+      <li>Show each collector an estimated total value of their collection. A graph of estimated collection value over time is desired.</li>
+      <li>Use USD for valuation displays at launch, retaining the original currency of source evidence.</li>
+      <li>Take weekly collection valuation snapshots. The historical chart shows the estimated value of holdings owned on each snapshot date, with acquisitions and removals marked to distinguish inventory changes from market movements.</li>
+      <li>Only the site owner manages shared manual valuation evidence. Collectors can privately override estimates for their own holdings; label personal overrides separately from market estimates.</li>
+      <li>Use a combination of completed sales, current asking prices, and manually entered research from eBay and similar sites. Specific integrations and permitted data access remain unverified.</li>
+      <li>Present estimates as a range with currency, valuation date, condition/completeness assumptions, supporting comparisons, and a confidence indicator. Show Insufficient data when evidence is too sparse.</li>
+      <li>Allow collectors to offer collection items for sale and purchase from other collectors.</li>
+      <li>Initially restrict marketplace sellers, buyers, and shipping addresses to the United States.</li>
+      <li>The owner handles listing moderation and user reports. Sellers handle shipping and returns. A payment provider handles payment processing and seller payouts; exact dispute, loss, and tax responsibilities depend on the selected configuration.</li>
+      <li>Planning assumption: charge a seller-paid 5% commission on the item subtotal, excluding shipping and tax, with payment processing charged separately to the seller. Validate operating costs before commerce launch.</li>
+      <li>Initial listings use fixed prices, with one seller per checkout.</li>
+      <li>Support sales of whole collection entries and individual parts in specified quantities, allowing the seller to retain the remainder of an entry.</li>
+      <li>Sellers set shipping charges, buy shipping labels themselves, and enter tracking on the order. Built-in label purchasing is deferred.</li>
+      <li>After successful payment, show a purchase as Incoming. Add it to the buyer's owned inventory only after the buyer confirms receipt; exclude incoming purchases from confirmed ownership counts and owned collection valuations.</li>
+      <li>Evaluate marketplace approaches that reduce the owner's operational burden and liability; recommendations require current provider research before selection.</li>
+    </ul>
+    <h3>Marketplace payment recommendation for a supported external host — researched October 5, 2026</h3>
+    <p><strong>Provisional recommendation:</strong> Evaluate Stripe Connect with seller connected accounts, hosted onboarding/checkout, direct charges, and a platform application fee. Direct charges support collecting a commission and place the payment on the seller account. Confirm provider eligibility for this collector marketplace before selecting it. <a href="https://docs.stripe.com/connect/direct-charges">Stripe direct charges documentation</a>.</p>
+    <p>Choose a supported account configuration assigning connected-account negative-balance responsibility to Stripe. Direct charges alone do not determine that responsibility; the platform remains responsible for its own negative balance. This choice trades away some payout controls. <a href="https://docs.stripe.com/connect/risk-management">Stripe risk and liability documentation</a>.</p>
+    <p>Stripe processing and Connect fees depend on configuration and are separate from the proposed site commission. Evaluate current total costs before finalizing the rate. <a href="https://stripe.com/connect/pricing">Stripe Connect pricing</a>.</p>
+    <p>Payment processing does not automatically transfer marketplace tax obligations to the provider or sellers. Establish sales-tax collection/remittance and tax-reporting responsibilities before commerce launch. <a href="https://docs.stripe.com/tax/connect">Stripe Tax with Connect</a>.</p>
+    <p><strong>Confirmed starting scope:</strong> Fixed-price listings and one seller per checkout, including individual part sales. The following return and issue-resolution policy is the accepted planning assumption; validate its implementation and applicable requirements before commerce launch.</p>
+    <h3>Accepted return and issue-resolution policy</h3>
+    <ul>
+      <li>For change-of-mind returns, sellers choose No change-of-mind returns or Returns within 14 days of delivery. Display the choice before checkout and retain its version on the order. If offered, require return in the received condition; buyer pays return shipping and original shipping is not refunded unless the seller offers better terms.</li>
+      <li>Regardless of the change-of-mind choice, require a resolution path for non-delivery, wrong items, undisclosed damage, or materially inaccurate descriptions. Remedy: seller-funded return where applicable and refund of the item price and original shipping, or a mutually agreed partial refund.</li>
+      <li>Ask collectors to report delivery/description issues within 30 days of delivery or the latest expected delivery date, and require sellers to respond within three business days. These are site service targets, not limits on statutory rights or payment dispute deadlines.</li>
+      <li>The owner facilitates unresolved cases and can remove listings or restrict sellers; do not promise that the platform funds seller refunds or guarantees reimbursement.</li>
+      <li>Refund the site's commission proportionally when the item price is refunded. Processing-fee treatment follows provider terms and must be disclosed.</li>
+    </ul>
+    <p>Preserve listing photos/descriptions, accepted policies, messages, tracking, and refund records for issue resolution. Stripe provides chargeback tools, but the issuing bank decides the outcome; the site's process cannot override that decision. <a href="https://stripe.com/guides/introduction-to-payment-disputes">Stripe dispute guidance</a>.</p>
+    <p>Define shipping promises and delay/cancellation handling before commerce launch. FTC guidance requires shipment as promised, or generally within 30 days if no time is promised, with delay notices and cancellation/refund options where applicable. Final policy must account for applicable consumer requirements. <a href="https://www.ftc.gov/business-guidance/resources/selling-internet-prompt-delivery-rules">FTC shipping guidance</a>.</p>
+    <h3>Discussions</h3>
+    <ul>
+      <li>Support discussions at both site and individual catalog-item level for signed-in users.</li>
+      <li>Only signed-in collectors can read discussions. Posts appear immediately without pre-publication approval.</li>
+      <li>Provide post reporting and owner moderation after publication.</li>
+      <li>Support multiple titled threads per catalog item and site-wide topics, with replies in chronological order. Item threads appear in the site-wide feed with an item label and link.</li>
+      <li>Item discussions must also appear in the site-wide discussion view while retaining their item scope and association.</li>
+      <li>Recommended model: display the same item thread in both views rather than copying posts; enforce sign-in on both views and their APIs.</li>
+    </ul>
+    <h3>Notifications and buyer/seller messaging</h3>
+    <ul>
+      <li>Provide in-app notifications. Send email for purchases, shipping updates, and return issues during the commerce phase.</li>
+      <li>Offer optional email notifications for replies to followed discussions. Catalog correction alerts appear in-app.</li>
+      <li>Keep buyer/seller messaging attached to listings and orders. Messages are visible only to participants and to the owner when needed for a reported issue.</li>
+      <li>General private messaging is deferred.</li>
+    </ul>
+  </section>
+  <section id="technical">
+    <h2>Provisional technical direction</h2>
+    <p>The repository currently contains a README, license, and Git configuration, with no application implementation.</p>
+    <ul>
+      <li><strong>Recommended:</strong> Use a Sites application with server-side routes for durable data and authorization, rather than a static-only application.</li>
+      <li><strong>Recommended:</strong> Use Sites-managed D1 for relational catalog, collection, user profile, and discussion records, and R2 for image and file storage. Keep image metadata and ownership in the database.</li>
+      <li><strong>Required:</strong> Enforce owner-only catalog writes and collection ownership checks on the server for every read or write that requires restricted access.</li>
+      <li><strong>Recommended:</strong> Validate admin form and import submissions using the same rules. Document CSV/JSON schemas for nested parts, images, file cards, and variant relationships. Validate and show import errors before committing data; import identifier and merge behavior remain open.</li>
+      <li><strong>Recommended:</strong> Version collection CSV/JSON templates and exports. Include stable release, owned-entry, and part identifiers; distinguish unknown quantities from zero. Document CSV representation of nested parts, condition grades, dates, and currencies, with examples. Import only into the authenticated collector's own collection and preserve field-level privacy for exports.</li>
+      <li><strong>Recommended:</strong> Provide import validation and a preview with row-level errors and proposed changes before saving. Define duplicate handling and add/update semantics before implementing imports. Associate separately uploaded photos with stable owned-entry identifiers.</li>
+      <li><strong>Recommended:</strong> Implement the unowned-catalog view using server-side queries against the signed-in user's collection. Treat the ownership rule as an explicit product decision rather than equating any catalog-linked entry with confirmed primary ownership.</li>
+      <li><strong>Required:</strong> Keep search visible and use an accessible expandable filter panel with a visible expanded/collapsed state on desktop and mobile.</li>
+      <li><strong>Required:</strong> Use stable catalog part identifiers and revision history to distinguish renamed, added, and removed parts. Store the last reviewed catalog revision on each collection entry and surface a review flag when its parts list changes. Preserve historical quantities for removed parts, initialize newly introduced quantities as unknown, and never silently discard or reassign collector holdings.</li>
+      <li><strong>Confirmed launch direction:</strong> Use platform-owned ChatGPT sign-in. The installed Sites guidance supports this path. Verify Microsoft and Google sign-in support before designing the post-launch authentication extension.</li>
+      <li><strong>Recommended:</strong> Key ownership to an internal application user identifier and map provider identities separately if the platform supports that extension. Link additional providers only through verified account ownership; do not merge accounts solely because their email addresses match.</li>
+      <li><strong>Required:</strong> Apply field-level privacy on the server to public collection responses and exports. Exclude private notes, purchase information, and storage locations from responses to other collectors, including search and media metadata.</li>
+      <li><strong>Confirmed model:</strong> Give each catalog release and each owned copy a stable identifier. Link owned copies to their release and collection; keep condition and owned part quantities on the individual copy.</li>
+      <li><strong>Required:</strong> Enforce one collection per user with a database uniqueness constraint. Allow release-associated inventory entries with zero primary objects and nonzero accessory quantities; do not assume every entry represents a complete toy.</li>
+      <li><strong>Required:</strong> Represent owned quantities as nullable nonnegative integers: null means unknown, zero means confirmed absent. Store the collector's initial completeness choice separately from quantities and physical condition.</li>
+      <li><strong>Required:</strong> Keep condition, completeness, packaging presence, and sealed status as separate fields. Optional detail must remain unknown unless explicitly entered or initialized by the Complete choice.</li>
+      <li><strong>Recommended:</strong> Use consistent application-defined grading guidance across item and part controls, describing observable wear. The exact tooltip wording remains to be drafted; do not imply third-party certification.</li>
+      <li><strong>Recommended:</strong> Derive statistics from confirmed quantities. Distinct collector counts deduplicate a user within each ownership category; category collector counts are not additive because one user may have copies in multiple categories.</li>
+      <li><strong>Recommended:</strong> Model catalog part occurrences with parent identifiers scoped to their catalog release and prevent cycles. Nested accessory ownership does not require ownership of its parent figure. Define expected quantities consistently for repeated parent parts before schema implementation.</li>
+      <li><strong>Recommended:</strong> Complete initializes expected quantities across the parts hierarchy and records original retail packaging as present. Snapshot the applicable catalog parts revision so later catalog edits do not silently invent newly owned parts.</li>
+      <li><strong>Recommended:</strong> Store original retail price with currency and applicable market, allowing unknown values. Use ordered image records with a designated primary image and relational variant links between catalog releases.</li>
+      <li><strong>Recommended:</strong> Keep unidentified loose-part inventory separate from release-associated entries, with an explicit later association workflow. Retain the original photos and notes when identifying or moving a loose part.</li>
+      <li><strong>Recommended:</strong> Extend unidentified inventory to support unidentified primary objects as well as loose parts. Persist identification attempts and candidate references separately from confirmed ownership. Confirmation should preserve the original inventory identity and photos without creating duplicate holdings.</li>
+      <li><strong>Recommended:</strong> Retrieve candidate releases and catalog part images before visual comparison. Distinguish insufficient catalog coverage from low-confidence identification; never invent a release when no catalog match exists. The model/provider, confidence presentation, and processing limits remain open.</li>
+      <li><strong>Recommended:</strong> Store valuation evidence with source URL, evidence type (completed sale, asking price, or manual estimate), observed/sale date, amount, currency, release/part association, and known condition/completeness. Record whether shipping and fees are included; retain distinctions between sold and asking prices.</li>
+      <li><strong>Recommended:</strong> Deduplicate evidence and match comparable releases and conditions before valuation. Verify current source permissions, API availability, costs, and coverage before selecting integrations; manual research entry remains a separate input path.</li>
+      <li><strong>Recommended:</strong> Value each owned entry using either a whole-item estimate or a component-based estimate, without adding both for the same physical holdings. Nested multipack figures and accessories must not be counted twice. Packaging may affect a whole-item estimate without also being added as a separate owned value.</li>
+      <li><strong>Recommended:</strong> Store weekly collection valuation snapshots with included holdings, range, currency, valuation method/version, and coverage of valued versus unvalued entries. Unknown and unpriced holdings must not be silently treated as zero; acquisitions and removals explain inventory changes.</li>
+      <li><strong>Required:</strong> Keep dated acquisition/removal events and historical holding references so later inventory edits do not rewrite previous snapshots. Snapshot weekly; do not imply historical market estimates exist before evidence or snapshots were collected.</li>
+      <li><strong>Recommended:</strong> Preserve market estimates and private overrides separately, including their effective dates. Make the effect of overrides on collection totals explicit, and exclude overrides from shared evidence, other collectors' views, and shared aggregate value calculations.</li>
+      <li><strong>Recommended:</strong> Schedule snapshot generation through a verified supported execution path during the valuation phase. Weekly snapshots do not by themselves define how frequently source evidence should refresh. Do not create a scheduled job during requirements discovery.</li>
+      <li><strong>Required for commerce:</strong> Associate listing lines with specific owned entries or part quantities. Reject sales of unknown or unavailable quantities; prevent overlapping whole-entry and part listings from selling the same holdings twice.</li>
+      <li><strong>Recommended:</strong> Reserve holdings atomically during checkout with an expiry; use idempotent payment operations and verified provider webhooks to finalize orders. Handle retries, payment failures, refunds, and abandoned checkout without overselling or duplicate inventory changes.</li>
+      <li><strong>Required for commerce:</strong> A completed part sale reduces only the sold quantity and preserves other holdings and historical ownership records. Whole-entry sales remove the relevant holdings from current inventory without erasing history. Define buyer collection updates and inventory restoration after returns separately.</li>
+      <li><strong>Recommended:</strong> Separate related-release links, expected release parts, and owned part quantities into relational tables. Store collection visibility on the collection record with a private default.</li>
+      <li><strong>Required:</strong> Serve collection records only to their owner or, for public collections, other signed-in users. Changing visibility must affect subsequent collection and media access; restricted content must not remain exposed through public caches or permanent media URLs.</li>
+      <li><strong>Recommended:</strong> Calculate aggregate holdings counts on the server and return counts without private collection identifiers or owner information. Define which grouping and filters are permitted before implementing the count API.</li>
+      <li><strong>Recommended:</strong> Associate item discussion threads with a catalog item identifier; the site-wide view queries those same threads.</li>
+      <li><strong>Recommended:</strong> Store discussion reports and owner moderation actions with timestamps and reasons. Add controls to hide/remove posts, lock threads, and restrict abusive accounts; preserve an audit trail. Define user editing/deletion rights and account restriction scope before implementation.</li>
+      <li><strong>Required:</strong> Authorize listing/order conversation access by participant identity. Owner access for reported issues must be scoped to the case and audited; collection visibility does not grant message access.</li>
+      <li><strong>Recommended:</strong> Store notification events and read state, discussion subscriptions, and email preferences. Deliver email through a verified provider with deduplication and retries; choose the provider and delivery mechanism before the relevant phase. Keep private message bodies and sensitive holdings out of email previews by default.</li>
+    </ul>
+    <p>The sections below make these directions concrete. Proposed implementation details are recommendations, not additional features approved by the collector interview.</p>
+  </section>
+  <section id="architecture">
+    <h2>Application architecture and screens</h2>
+    <p><strong>Recommended stack:</strong> The supported Sites Vinext/React starter with TypeScript, server-rendered routes and server APIs, Sites-managed D1 for records, and R2 for media. Use the bundled UI primitives for filters, tables, dialogs, expandable panels, and tooltips. Confirm the starter and capabilities during project setup; do not scaffold an independent login stack.</p>
+    <p>Browser requests flow through Sites authentication to server-side authorization and application services, then D1 and R2. Catalog reads are anonymous; personal records, counts, and community APIs require identity. All uploads go through authorized server endpoints. Future identification and valuation adapters remain behind server interfaces so providers can change without changing collection ownership.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Route/screen</th><th>Purpose and access</th></tr></thead>
+      <tbody>
+        <tr><td><code>/catalog</code></td><td>Public searchable catalog with visible search, collapsed filters, sorting, and pagination.</td></tr>
+        <tr><td><code>/catalog/[release]</code></td><td>Public metadata, ordered photos, variants, parts tree, and file-card image/text. Signed-in users also see counts and Add to collection; item discussions arrive in phase 2.</td></tr>
+        <tr><td><code>/collection</code></td><td>Owner's collection, per-copy editing, privacy setting, parts checklist, unidentified holdings, and search/filter controls.</td></tr>
+        <tr><td><code>/catalog?ownership=unowned</code></td><td>Signed-in view of catalog entries without confirmed primary ownership, with parts-only and unconfirmed labels.</td></tr>
+        <tr><td><code>/collectors/[collector]/collection</code></td><td>Signed-in public collection view with server-filtered fields. Private collections are unavailable to other collectors.</td></tr>
+        <tr><td><code>/account</code>, <code>/imports</code></td><td>Display name, own data export, account deletion, downloadable templates, validation, and import results.</td></tr>
+        <tr><td><code>/admin/catalog</code></td><td>Owner-only forms/imports, catalog corrections, retirement, and duplicate merge.</td></tr>
+        <tr><td><code>/discussions</code>, <code>/discussions/[thread]</code></td><td>Phase 2 signed-in feed and threads, item links, follow controls, reporting, and owner moderation.</td></tr>
+        <tr><td><code>/identify</code>, <code>/valuation</code></td><td>Phase 3 private photo matching and own valuation history; catalog estimates follow the visibility default below.</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Design direction:</strong> Compact catalog cards and readable tables, deep navy/charcoal surfaces with restrained olive accents, plain sans-serif body text, and clear toy photography. Keep search and working content prominent. Do not use decorative military imagery in place of factual catalog photos. Use 16px body text, keyboard navigation, touch-accessible condition help, and layouts usable at 200% enlargement.</p>
+    <p>Loading, empty catalog, no matches, unavailable media, retired releases, failed saves, import errors, and storage outages need explicit states. Preserve unsaved edits after recoverable errors. Announce successful saves accessibly.</p>
+  </section>
+  <section id="schema">
+    <h2>Recommended relational data model</h2>
+    <p>Use stable opaque identifiers rather than titles, UPCs, or URLs as foreign keys. Money uses integer minor units plus currency; quantities are nonnegative integers or null for unknown. External product identifiers may be absent or reused, so they are not assumed globally unique. Dates should distinguish known acquisition dates from the date data was recorded.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Entity</th><th>Key fields and rules</th></tr></thead>
+      <tbody>
+        <tr><td>users / identities</td><td>Internal user ID, display name, private email, platform identity, deletion state. Provider identities are unique by provider and subject; role/owner grants are controlled on the server.</td></tr>
+        <tr><td>collections</td><td>User ID with unique constraint, visibility private/public, timestamps. Exactly one collection per active collector.</td></tr>
+        <tr><td>catalog_releases</td><td>Name, character, type, year, line/taxonomy references, scale, faction, market, manufacturer, product code/UPC, retail price/currency, revision, retired flag.</td></tr>
+        <tr><td>taxonomy / release_taxonomy</td><td>Typed controlled values and parent relationships for lines, series, sub-series, waves, and other supported filters. Allow applicable metadata to be unknown.</td></tr>
+        <tr><td>release_relations</td><td>Source release, related release, relation type such as variant. Prevent self-links and duplicate relationships; display reciprocal variant navigation.</td></tr>
+        <tr><td>catalog_parts</td><td>Release-scoped occurrence ID, optional parent part, name, kind (primary object, accessory, packaging, paperwork), expected quantity, order, retired revision, optional linked release.</td></tr>
+        <tr><td>file_cards</td><td>Release or figure-part association, image references, transcription text, language where known. Absence is valid; text is not required for every release.</td></tr>
+        <tr><td>media / media_links</td><td>R2 key, type/size, owner/access scope, order, primary-image flag, release/part/owned-entry associations. Never use a public object URL for private collector media.</td></tr>
+        <tr><td>owned_entries</td><td>Collection, optional release, unidentified label/type, item-ownership classification, initial completeness choice, overall condition, original-packaging presence, sealed status, reviewed revision, and timestamps. Duplicate release copies remain distinct entries; ownership and completeness are separate.</td></tr>
+        <tr><td>owned_parts</td><td>Owned entry plus catalog part occurrence, nullable quantity, optional grade and defect notes. No requirement that a parent figure be present to own its accessories.</td></tr>
+        <tr><td>entry_private_details</td><td>Entry ID, acquisition date, purchase amount/currency/source, storage location, private notes. Keeping these fields separate reduces accidental disclosure.</td></tr>
+        <tr><td>catalog_revisions / merge_maps</td><td>Change records, before/after part definitions, source-to-target release and part mappings, actor, reason, and preserved historical identifiers.</td></tr>
+        <tr><td>inventory_events</td><td>Entry/part, event type, quantity change, effective date, recorded date, reason. Supports later acquisition/removal markers and inventory history.</td></tr>
+        <tr><td>import_jobs / import_rows</td><td>Actor, template version, validation result, proposed action, errors, stable source row keys, commit status. Expire uploaded staging files after processing.</td></tr>
+        <tr><td>threads / posts / reports</td><td>Phase 2 title, optional catalog release scope, author, body, chronological timestamps, moderation state, report reason, and audit records.</td></tr>
+        <tr><td>notifications / follows / email_preferences</td><td>Phase 2 events and delivery/read state, discussion subscriptions, and opt-in preferences. Catalog correction notifications start in phase 1.</td></tr>
+        <tr><td>identification_attempts / candidates</td><td>Phase 3 image references, processing state, candidate release/part IDs, rank, explanation, model version, and collector decision.</td></tr>
+        <tr><td>price_evidence / estimates / overrides</td><td>Phase 3 evidence source/type/time, subject and comparability facts; estimate range/method/confidence; owner-scoped private overrides.</td></tr>
+        <tr><td>valuation_snapshots / snapshot_lines</td><td>Phase 3 weekly date, user, market range, overrides, coverage, included holdings and method version. History survives later edits to current inventory.</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Parts quantity convention:</strong> Recommended expected quantities are absolute totals per one retail release, even for nested parts; nesting groups them visually and does not multiply totals. If a set contains two identical figures, expected helmet quantity is two, not a quantity that is multiplied again during valuation or import. Document this in templates.</p>
+    <p><strong>Confirmed multipack ownership convention:</strong> Use the same item-and-parts model as figures and vehicles. Count a confirmed owned multipack entry once even when included figures, vehicles, or accessories are missing; do not require every figure to meet its expected quantity and do not treat incompleteness as lack of ownership. Each owned copy remains a distinct entry. Complete still requires original retail packaging and every expected part.</p>
+    <p><strong>Recommended classification implementation:</strong> Keep confirmed item ownership, parts-only holdings, and unconfirmed ownership separate from completeness. A multipack with confirmed included figure/vehicle ownership can count as an owned item despite other unknown quantities. Accessories alone can remain parts-only, consistent with the Snow Job skis example. Do not add component counts to the number of owned multipack entries or automatically create standalone figure holdings from their contents.</p>
+    <p><strong>Merge procedure:</strong> Preview impacted entries, map corresponding parts explicitly, retain separate owned copies, and require a mapping decision for conflicts. Preserve unmatched legacy parts and flag review rather than guessing or discarding quantities. Redirect the duplicate's reference to the surviving record without erasing provenance.</p>
+    <p>Create indexes around catalog filters, collection/user lookups, owned-entry part joins, thread scope/time, and evidence subject/date. Verify representative query plans and avoid redundant indexes. Use foreign keys and check constraints; schema changes use inspected migration files rather than runtime table creation.</p>
+  </section>
+  <section id="api">
+    <h2>Recommended service and API boundaries</h2>
+    <ul>
+      <li><strong>Catalog:</strong> Public read/list/detail services; signed-in holdings aggregates; owner-only create/update/retire/merge/import services. Search uses parameterized queries and paginated results with a stable secondary sort key.</li>
+      <li><strong>Collection:</strong> Own create/edit/remove entry and part operations, own visibility setting, own imports and exports; separate sanitized public-collection reads. Derive owner identity from the session, never from an editable request field.</li>
+      <li><strong>Media:</strong> Upload validation and authorized retrieval by media identifier. Recheck current collection visibility on each protected retrieval; strip location metadata from collector photos.</li>
+      <li><strong>Account:</strong> Profile update, comprehensive own-data export, deletion request and status. Export records as versioned JSON plus CSV tables, with a separate downloadable media archive or authorized file manifest.</li>
+      <li><strong>Community:</strong> Signed-in feed/thread/post/follow/report APIs and owner-only moderation. Item feeds and site feeds reference identical thread IDs.</li>
+      <li><strong>Identification/valuation:</strong> Server-only provider adapters, per-user quotas, asynchronous job status where necessary, manual evidence admin, private overrides, and weekly snapshot generation. Provider secrets never reach the browser.</li>
+    </ul>
+    <p>Validate all mutations on the server, use request-origin/CSRF protections appropriate to the platform auth model, optimistic concurrency for edits, and idempotency identifiers for imports and long-running jobs. Return field/row errors rather than silently coercing unknown quantities or invalid identifiers. Keep transactions bounded and use database batch operations where atomicity is needed.</p>
+    <h3>Import contract</h3>
+    <p>Recommended CSV downloads are a coordinated set of files for entries, parts, and relationships, joined by template keys. JSON carries the same information as nested objects. Include example rows, enum documentation, required identifiers, and empty-as-unknown guidance. Photos are uploaded separately and mapped using entry keys.</p>
+    <p>Imports never merge owned copies simply because release IDs match. New rows create distinct entries; explicit existing entry IDs permit updates only within the actor's collection. Owner catalog imports update by stable catalog ID or import key. Repeating the same committed import must not duplicate holdings. Preview errors/conflicts before commit; an import staging screen is not a catalog draft publication state.</p>
+  </section>
+  <section id="condition-guide">
+    <h2>Proposed condition tooltip copy</h2>
+    <p>These are collector-facing descriptive grades, not professional grading certification. Completeness, packaging, and sealing are separate. Apply a grade to the object being assessed; a mint figure can have a poor box.</p>
+    <table>
+      <thead><tr><th>Grade</th><th>Tooltip guidance</th></tr></thead>
+      <tbody>
+        <tr><td>Mint</td><td>No visible wear, damage, or discoloration on inspection. Record any known defect separately. Does not imply sealed packaging.</td></tr>
+        <tr><td>Excellent</td><td>Very slight wear visible on close inspection; no significant damage. Note minor paint rubs or other defects.</td></tr>
+        <tr><td>Good</td><td>Noticeable wear or small defects, but the item remains usable/displayable. Describe paint loss, discoloration, or loose joints.</td></tr>
+        <tr><td>Fair</td><td>Substantial wear or damage that affects appearance or function. Describe cracks, broken tabs, repairs, or heavily worn joints.</td></tr>
+        <tr><td>Poor</td><td>Severe wear or damage; significant repairs may be needed or the item may be suitable mainly for parts.</td></tr>
+        <tr><td>Unknown</td><td>Not inspected or not enough information to choose a grade. You can update this later.</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section id="security">
+    <h2>Privacy, deletion, and operational safeguards</h2>
+    <ul>
+      <li>Configure a public Site for anonymous catalog access, then require verified identity on all collector/community surfaces. Grant catalog administration only to the owner's verified identity; email/display name is not an authorization key.</li>
+      <li>Test field-level access with anonymous, collector A, collector B, and owner sessions. Private holdings contribute only to approved aggregates; no per-user private breakdowns or arbitrary owner filters.</li>
+      <li>Sanitize discussion formatting and file-card content; enforce upload MIME/type and size checks, image decoding, rate limits, and non-executable media responses. Proposed launch limit: ten images per entry, 10 MB per uploaded image, pending platform limits and owner review.</li>
+      <li>Hide login email everywhere outside the user's account and narrowly authorized operational access. Account deletion removes collection records, media, private valuations, subscriptions, and identifying profile fields from active storage; retained discussion posts use Deleted collector.</li>
+      <li>Scrub personal details in retained discussion text, attachments, and revisions; flag ambiguous content for owner review. Merely renaming the author is insufficient. Use a resumable deletion job for storage cleanup and revoke app access immediately.</li>
+      <li>Verify supported backup/export and restoration procedures before public launch. Keep code, migration history, catalog data, and media recoverable independently; restoring a backup must reapply deletion records so removed accounts are not resurrected.</li>
+      <li>Recommended targets: remove active collection/profile data within seven days of deletion request; expire any application-managed backup copies within 30 days. These are proposed targets, not claims about Sites-managed backups. Publish only retention commitments verified with the platform.</li>
+      <li>Use redacted server logs and track save/import/upload failures. Do not log login tokens, full private notes, image bytes, or provider keys. Collect only operational telemetry needed to diagnose the application.</li>
+    </ul>
+  </section>
+  <section id="delivery">
+    <h2>Implementation milestones in this repository</h2>
+    <ol>
+      <li><strong>Capability verification:</strong> Confirm public Sites availability, ChatGPT sign-in, D1/R2 access and limits, source synchronization, media privacy, export/recovery, and account deletion. Record Microsoft/Google feasibility separately; do not block phase 1 on those providers.</li>
+      <li><strong>Foundation:</strong> Initialize the supported starter in the existing repository without replacing its Git history. Add theme tokens, public catalog shell, sign-in, schema/migrations, owner authorization, and durable storage helpers.</li>
+      <li><strong>Catalog:</strong> Build owner forms, imports, release links, images, parts hierarchy, file cards, public search/detail, revision changes, retirement, and merge. Test with owner-provided A Real American Hero and 25th Anniversary records.</li>
+      <li><strong>Collections:</strong> Add one collection per user, separate owned copies, complete/partial/unknown addition, nullable parts quantities, conditions/tooltips, private fields, visibility, counts, unowned view, correction review, CSV/JSON templates, export, and deletion.</li>
+      <li><strong>Launch verification:</strong> Execute the acceptance scenarios below, verify fresh migrations and data export/restore, build, then publish the complete catalog/collection release with the intended public audience. Keep preview data distinct from the owner's real collection.</li>
+      <li><strong>Community next:</strong> Add signed-in chronological discussion threads, shared item/site views, immediate posting, reporting, owner moderation, notifications, and optional email after verifying delivery.</li>
+      <li><strong>Additional identities:</strong> Implement Microsoft/Google sign-in only through a verified supported approach, including safe linking and existing-user migration. This follows launch soon afterward when platform support allows.</li>
+      <li><strong>Identification and valuation:</strong> Verify model billing and evidence access; implement single-object matching, confirmation/unidentified inventory, comparable pricing, private overrides, totals/coverage, and weekly snapshots/chart. Deploy with explicit usage limits.</li>
+      <li><strong>Future commerce:</strong> Revisit hosting/policies before adding payments, listings, messaging, fulfillment, and the accepted return process. No commerce database or payment setup is required for current Sites milestones.</li>
+    </ol>
+    <p><strong>Proposed source organization:</strong> <code>app/</code> routes and APIs; <code>components/</code> interface; <code>lib/auth/</code>, <code>lib/catalog/</code>, <code>lib/collection/</code>, <code>lib/media/</code>, and later provider adapters; <code>db/schema.ts</code> and <code>drizzle/</code> migrations; <code>public/templates/</code> import downloads; <code>tests/</code> meaningful authorization/domain/import checks; <code>docs/</code> this HTML plan. Use the starter's actual supported conventions during setup.</p>
+    <p>Save schema migrations with code, inspect them before deployment, and treat applied migrations as immutable. A code rollback does not undo data migrations. Make recoverable backups before destructive data changes and verify restore procedures, including protected media access.</p>
+  </section>
+  <section id="acceptance">
+    <h2>Acceptance scenarios and release gates</h2>
+    <ol>
+      <li><strong>Anonymous access:</strong> Browse catalog photos, filters, variants, parts, and file cards; collection records, holdings counts, private media, discussions, and admin mutations are inaccessible.</li>
+      <li><strong>Catalog authority:</strong> Collector sessions cannot create, edit, retire, merge, or import catalog data by calling APIs directly. Owner saves publish immediately.</li>
+      <li><strong>Separate copies:</strong> Add two copies of the same release with different condition/parts/private details; editing or removing one does not change the other.</li>
+      <li><strong>Quick addition:</strong> Complete initializes original packaging and expected parts without inferring sealed or Mint. Partial/Not sure preserve unknown quantities. Blank, null, and zero round-trip correctly through imports/exports.</li>
+      <li><strong>Snow Job skis:</strong> Set two skis, zero primary figure, and zero other parts; count as parts-only and keep the release in the unowned view. Unknown primary quantities show Ownership unconfirmed.</li>
+      <li><strong>Multipack:</strong> An owned multipack with a missing included figure still counts as one owned entry and is excluded from the unowned view, but is not Complete. Track figures, vehicles, and their accessories independently; an accessory can exist without its parent figure. Do not multiply absolute expected quantities, count each included figure as a separate owned set, or double-count parts in estimates.</li>
+      <li><strong>Privacy:</strong> Public collection responses show permitted fields only. Switching to private revokes later reads and protected media access. Email, private notes, purchase facts, and storage location never leak to another collector.</li>
+      <li><strong>Counts:</strong> Split public/private holdings by the agreed categories; deduplicate collectors within each category; exclude unconfirmed holdings from confirmed totals.</li>
+      <li><strong>Correction/merge:</strong> Rename, add, remove, retire, and merge catalog records without losing owned quantities or copy identities. Affected entries show review flags; new parts remain unknown until reviewed.</li>
+      <li><strong>Imports:</strong> Templates download; valid CSV/JSON produce equivalent data. Invalid IDs, negative quantities, cross-user IDs, cycles, and conflicting merges produce actionable errors. Retrying a committed job does not duplicate holdings.</li>
+      <li><strong>Export/deletion:</strong> Export the user's records and media mapping; delete an account and confirm its data/media are unavailable. Restore rehearsal does not restore deleted users. In phase 2 retained posts show Deleted collector with identifying content removed.</li>
+      <li><strong>Community:</strong> Signed-in posts appear immediately. An item thread is the same thread in both feeds. Reports and moderation work; anonymous requests cannot read post bodies.</li>
+      <li><strong>Identification:</strong> Rank only existing catalog candidates, show comparisons/reasons, preserve uncertain inventory, and add/associate only after confirmation. Missing catalog coverage does not produce an invented match.</li>
+      <li><strong>Valuation:</strong> Separate asking/sold evidence and private overrides; sparse coverage says Insufficient data. Item/part totals do not count the same holdings twice. Weekly snapshots retain history after acquisitions, edits, and removals.</li>
+      <li><strong>Usability:</strong> Verify desktop and mobile search, collapsed filters, part checklists, photo upload, keyboard/tooltips, readable error states, and 200% text enlargement.</li>
+    </ol>
+    <p><strong>Proposed test dataset:</strong> At least a dozen representative owner-provided releases across both initial lines, including variants, an international/packaging distinction, a nested multipack, a vehicle, file cards, and one retired/merged test record. Include complete, loose, damaged, parts-only, unknown, duplicate-copy, and unidentified holdings across two test collectors. This is a testing recommendation, not a requirement to complete either toy line before launch.</p>
+    <p>Use focused tests for ownership/privacy, quantity/statistics rules, merges/imports, and deletion. Verify responsive workflows manually on representative devices and perform a production build and migration checks. Set performance targets after measuring the representative dataset; do not promise unmeasured capacity.</p>
+  </section>
+  <section id="costs">
+    <h2>Operating costs and platform feasibility</h2>
+    <p><strong>Confirmed preference:</strong> Use the existing Sites offering initially; no separate monthly spending ceiling has been specified.</p>
+    <p>Sites is included with eligible ChatGPT plans during public beta. Plan-specific usage limits apply across Sites; this is not a promise of unlimited hosting or permanent pricing. Account-specific limits must be checked before implementation. <a href="https://learn.chatgpt.com/docs/pricing">Official OpenAI pricing</a>, <a href="https://learn.chatgpt.com/docs/sites">Sites limits</a>.</p>
+    <p><strong>Open costs:</strong> Verify how photo-identification inference is billed, whether valuation sources require paid access, email service pricing, and external commerce hosting/payment costs. Do not assume third-party services or runtime model calls are included with Sites.</p>
+    <p><strong>Recommended:</strong> Start catalog and collection tracking with platform storage. Before introducing paid services, document the expected usage and enforceable limits. Keep data exportable so future authentication or commerce constraints do not trap collector data.</p>
+    <p><strong>Confirmed scope:</strong> Continue catalog and collection tracking on Sites. Put commerce on hold while retaining its requirements. Do not add commerce payment integrations, seller onboarding, or checkout to the current implementation.</p>
+  </section>
+  <section id="questions">
+    <h2>Remaining dependencies and recommended defaults</h2>
+    <p>Core discovery is complete. The following defaults make implementation planning actionable without presenting unconfirmed details as user decisions.</p>
+    <h3>Verify before the affected phase</h3>
+    <ul>
+      <li><strong>Launch:</strong> Actual account Sites limits, public access/auth behavior, D1/R2 privacy, import capacity, deletion processing, and backup/restoration capability. Define the initial line boundaries with the owner's supplied dataset.</li>
+      <li><strong>Additional login:</strong> Verify Microsoft/Google provider support in the Sites runtime. Interpret the request provisionally as provider sign-in, not storing users' Microsoft/Google passwords. Confirm intended flow before implementing.</li>
+      <li><strong>Discussions:</strong> Select and verify email delivery and opt-out support. Decide precise post-edit/delete rules and account restriction scope.</li>
+      <li><strong>Identification:</strong> Verify runtime model access, billing, image processing/privacy, and quotas; benchmark matching on known releases and accessories. Use qualitative confidence until calibrated evidence supports numeric confidence.</li>
+      <li><strong>Valuation:</strong> Verify permitted source data access, comparable-sales coverage, currency normalization, provider cost, and weekly unattended execution. Do not assume access to eBay completed-sale data or unrestricted scraping.</li>
+      <li><strong>Commerce on hold:</strong> Recheck hosting eligibility, payment configuration, tax/reporting obligations, and the retained return policy before implementation. Later resolve seller eligibility, shipping deadlines, listing visibility, and purchases with unconfirmed/partial receipt.</li>
+    </ul>
+    <h3>Recommended defaults, subject to revision</h3>
+    <ul>
+      <li>Keep acquisition dates, private overrides, individual valuation totals/history, and unidentified inventory owner-only. Show shared catalog market estimates to signed-in collectors in phase 3.</li>
+      <li>Keep unknown parts as entries with photos/notes; let the owner of that inventory confirm a later match while retaining the original entry and history.</li>
+      <li>For graded toy conditions, use the proposed tooltip text above. Preserve physical condition separately from packaging and completeness.</li>
+      <li>Let discussion authors edit their own posts with an edited marker and revisions; removal preserves reply structure with a tombstone. Owner moderation can hide abusive content. Resolve identifying text during account deletion rather than retaining it blindly.</li>
+      <li>Refresh valuations weekly with snapshots initially, subject to source cost and freshness. Label stale evidence and distinguish market totals from totals using private overrides; show both instead of silently substituting values.</li>
+      <li>Use the explicit import identifiers, no automatic duplicate-copy merging, private acquisition-date visibility, and absolute nested-part quantities proposed above.</li>
+    </ul>
+    <p><strong>Ownership rule resolved:</strong> Multipacks follow the same ownership model as figures and vehicles. Missing parts affect completeness, not confirmed item ownership; there is no requirement to own all included figures before counting the item as owned.</p>
+  </section>
+</main>
+</body>
+</html>
