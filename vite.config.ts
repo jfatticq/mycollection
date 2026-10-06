@@ -53,11 +53,14 @@ export default defineConfig(async ({ command }) => {
 
   return {
     server: {
+      // Keep package caches, the publishing checkout and local storage out of HMR.
+      // These can contain another full application tree and many dependency files.
+      watch: {
+        ignored: ["**/.sites-runtime/**", "**/.wrangler/**", "**/dist/**", "**/.vinext/**"],
+        ...(isCodexSeatbeltSandbox ? { useFsEvents: false, usePolling: true } : {}),
+      },
       ...(managedLinux
         ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
-        : {}),
-      ...(isCodexSeatbeltSandbox
-        ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),
     },
     plugins: [
