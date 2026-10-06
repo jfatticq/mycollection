@@ -1,6 +1,49 @@
-import catalog,{canonicalId} from '@/lib/catalog';
-import {isCollectionOwner,ownerWriteError} from '@/lib/owner-access';
-import {setPieceOwnedQuantity} from '@/lib/collection-details';
-import {db,sameOrigin} from '@/lib/db';
-export async function GET(request:Request){try {const [i,s]=await Promise.all([db().prepare('SELECT data FROM items').all(),db().prepare("SELECT data FROM settings WHERE id = ?").bind('scope').first()]);return Response.json({canEdit:isCollectionOwner(request.headers),access:{status:isCollectionOwner(request.headers)?'owner':request.headers.get('oai-authenticated-user-id')?'not_owner':'sign_in_required',email:request.headers.get('oai-authenticated-user-id')?request.headers.get('oai-authenticated-user-email'):undefined},items:i.results.map((r:any)=>JSON.parse(r.data)),scope:s?JSON.parse(s.data):null});}catch(e){console.error(e);return Response.json({error:'Unable to load your collection. Please retry.'},{status:503});}}
-export async function POST(r:Request){const denied=ownerWriteError(r);if(denied)return denied;if(!sameOrigin(r))return Response.json({error:'This request could not be verified. Please reopen the site and try again.'},{status:403});try {const {action,item,scope}=await r.json() as any;if(action==='scope'){if(!scope||!Array.isArray(scope.lines)||!Array.isArray(scope.years))throw Error('Invalid scope');await db().prepare('INSERT INTO settings (id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data').bind('scope',JSON.stringify(scope)).run();}else if(action==='save'){if(!item||typeof item.name!=='string'||!item.name.trim()||!['Classified','Vintage ARAH','2000s ARAH','Rise of Cobra','25th Anniversary','Resolute','Pursuit of Cobra','30th Anniversary','Renegades','Retaliation','50th Anniversary','Retro','Club / FSS','Sigma 6','Unknown'].includes(item.line)||(!(item.year===null&&item.identificationStatus==='unidentified')&&!Number.isInteger(Number(item.year)))||Number(item.quantity)<1||Number(item.quantity)>999||JSON.stringify(item).length>50000)throw Error('Invalid item details');if(item.releaseId&& !catalog.some(r=>r.id===canonicalId(item.releaseId)))throw Error('Unknown catalog link');if(item.ownedForm&&!['figure','vehicle','package','unidentified'].includes(item.ownedForm))throw Error('Invalid owned form');if(item.photos!==undefined&&(!Array.isArray(item.photos)||item.photos.some((photo:any)=>typeof photo!=='string')))throw Error('Invalid photo list');if(item.pieces!==undefined){if(!Array.isArray(item.pieces)||item.pieces.length>500)throw Error('Invalid part list');item.pieces=item.pieces.map((piece:any)=>{if(!piece||typeof piece.label!=='string')throw Error('Invalid part');return Object.prototype.hasOwnProperty.call(piece,'ownedQuantity')?setPieceOwnedQuantity(piece,piece.ownedQuantity):piece;});}item.id=item.id||crypto.randomUUID();await db().prepare('INSERT INTO items (id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data').bind(item.id,JSON.stringify(item)).run();return Response.json({item});}else if(action==='delete'){await db().prepare('DELETE FROM items WHERE id=?').bind(item.id).run();}else throw Error('Invalid action');return Response.json({ok:true});}catch(e){console.error(e);return Response.json({error:'Could not save. Check your details and retry; your input has been kept.'},{status:400});}}
+import { db } from '@/lib/db';
+import { actor, mutation, readableCollection, json, failure, AccessError } from '@/lib/auth/access';
+import { entries, saveEntry } from '@/lib/collection/store';
+import { limit, bodyJSON } from '@/lib/limits';
+export async function GET(request: Request) { try {
+    const a = await actor(request);
+    const id = new URL(request.url).searchParams.get('collectionId') || a.collectionId;
+    const collection = await readableCollection(a, id);
+    const own = collection.user_id === a.id;
+    return json({ canEdit: own, access: { status: own ? 'owner' : 'viewer' }, collection: { id, visibility: collection.visibility, displayName: collection.display_name }, items: await entries(id, own), ...(own ? { scope: (() => { const p = JSON.parse(String(collection.preferences)); return Array.isArray(p.lines) && Array.isArray(p.years) ? p : null; })() } : {}) });
+}
+catch (e) {
+    return failure(e);
+} }
+export async function POST(request: Request) {
+    try {
+        mutation(request);
+        const a = await actor(request);
+        await limit(a.id, 'collection-write', 120, 60);
+        const body = await bodyJSON(request) as any;
+        if (body.action === 'save')
+            return json({ item: await saveEntry(a, body.item) });
+        if (body.action === 'delete') {
+            const id = body.item?.id;
+            if (typeof id !== 'string')
+                throw new AccessError(400, 'Entry ID required.');
+            const result = await db().prepare('DELETE FROM owned_entries WHERE id=? AND collection_id=?').bind(id, a.collectionId).run();
+            if (!result.meta.changes)
+                throw new AccessError(404, 'Entry not found.');
+            return json({ ok: true });
+        }
+        if (body.action === 'visibility') {
+            if (!['private', 'public'].includes(body.visibility))
+                throw new AccessError(400, 'Invalid visibility.');
+            await db().prepare('UPDATE collections SET visibility=?,updated_at=? WHERE id=? AND user_id=?').bind(body.visibility, new Date().toISOString(), a.collectionId, a.id).run();
+            return json({ ok: true });
+        }
+        if (body.action === 'scope') {
+            if (!body.scope || !Array.isArray(body.scope.lines) || !Array.isArray(body.scope.years) || JSON.stringify(body.scope).length > 10000)
+                throw new AccessError(400, 'Invalid preferences.');
+            await db().prepare('UPDATE collections SET preferences=?,updated_at=? WHERE id=? AND user_id=?').bind(JSON.stringify(body.scope), new Date().toISOString(), a.collectionId, a.id).run();
+            return json({ ok: true });
+        }
+        throw new AccessError(400, 'Unknown action.');
+    }
+    catch (e) {
+        return failure(e);
+    }
+}

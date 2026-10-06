@@ -1,2 +1,12 @@
-import {accessoryImages} from '@/lib/accessory-images';
-export async function GET(request:Request){const id=new URL(request.url).searchParams.get('id');if(!id)return Response.json({error:'Choose a release.'},{status:400});try{return Response.json(await accessoryImages(id)||{images:[]});}catch{return Response.json({error:'Accessory photos are unavailable right now. View the release source or retry.'},{status:503});}}
+import { releaseDetail } from '@/lib/catalog-read';
+import { json, failure, AccessError } from '@/lib/auth/access';
+export async function GET(request: Request) { try {
+    const id = new URL(request.url).searchParams.get('id');
+    if (!id)
+        throw new AccessError(400, 'Release ID required.');
+    const d = await releaseDetail(id);
+    return json({ images: d.images.filter(i => i.part_id).map(i => ({ ...i, key: i.id, caption: d.parts.find(p => p.id === i.part_id)?.name ?? 'Part' })) });
+}
+catch (e) {
+    return failure(e);
+} }

@@ -1,0 +1,27 @@
+const fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),assert=require('node:assert/strict');
+const {DatabaseSync}=require('node:sqlite');
+const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');
+for(const file of fs.readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort())sql.exec(fs.readFileSync('drizzle/'+file,'utf8'));
+const db={prepare(query){let args=[];const s={bind(...v){args=v;return s},async first(){return sql.prepare(query).get(...args)},async all(){return {results:sql.prepare(query).all(...args)}},async run(){return s.execute()},execute(){return sql.prepare(query).run(...args)}};return s},async batch(statements){sql.exec('BEGIN');try{const results=statements.map(s=>s.execute());sql.exec('COMMIT');return results}catch(e){sql.exec('ROLLBACK');throw e}}};
+const keys=new Set(Array.from({length:205},(_,i)=>'legacy/'+i));let offline=false;
+const bucket={async list({limit}){return {objects:[...keys].slice(0,limit).map(key=>({key}))}},async delete(list){if(offline)throw Error('Injected R2 failure');for(const key of list)keys.delete(key)}};
+const exportsObject={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('scripts/step5-maintenance.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:exportsObject,Response,URL,console});
+const handle=exportsObject.migrationResponse,env={DB:db,BUCKET:bucket,MIGRATION_RESET_TOKEN:'test-only'};
+const body={project_id:'appgprj_6ac1cede871881919ac1c3b25bf1a6c5',d1:'DB',r2:'BUCKET'};
+const req=(action,extra={},token='test-only')=>new Request('https://test.example/__migration/step5',{method:'POST',headers:{Authorization:'Bearer '+token},body:JSON.stringify({...body,action,...extra})});
+(async()=>{
+ assert.equal(await handle(new Request('https://test.example/'),{}),undefined);
+ assert.equal((await handle(new Request('https://test.example/api/collection'),env)).status,503);
+ assert.equal((await handle(req('clear',{},'invalid'),env)).status,404);
+ sql.prepare('INSERT INTO items VALUES(?,?)').run('legacy','{}');
+ assert.equal((await handle(req('clear',{r2:'other'}),env)).status,409);assert.equal(keys.size,205);
+ sql.prepare('INSERT INTO users(id,display_name,created_at) VALUES(?,?,?)').run('new','Collector','now');
+ assert.equal((await handle(req('clear'),env)).status,409);sql.exec('DELETE FROM users');
+ sql.exec('CREATE TABLE unexpected(id TEXT)');assert.equal((await handle(req('clear'),env)).status,503);sql.exec('DROP TABLE unexpected');
+ offline=true;assert.equal((await handle(req('clear'),env)).status,503);assert.equal(sql.prepare('SELECT count(*) n FROM items').get().n,0);assert.equal(keys.size,205);
+ offline=false;for(let i=0;i<3;i++)assert.equal((await handle(req('clear'),env)).status,200);assert.equal(keys.size,0);
+ assert.equal((await handle(req('finalize'),env)).status,200);
+ assert.equal((await handle(req('clear'),env)).status,409);
+ const status=await (await handle(req('status'),env)).json();assert.equal(status.complete,true);assert.equal(status.filesEmpty,true);assert.ok(Object.values(status.counts).every(n=>n===0));
+ console.log('Step 5 checks passed: write freeze, authorization, resource/schema guards, new-data refusal, R2 resume, empty-state verification and one-time completion.');
+})().catch(e=>{console.error(e);process.exitCode=1});

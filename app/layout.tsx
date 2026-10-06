@@ -3,8 +3,8 @@ import "./globals.css";
 import "./armory-design.css";
 
 export const metadata: Metadata = {
-  title: "The Joe Armory",
-  description: "Your G.I. Joe collection, condition records, market references, and missing releases.",
+  title: "G.I. Jeff's Files",
+  description: "Explore the G.I. Joe catalog and record your collection, conditions, parts and photos.",
   other: {
     "codex-preview": "development",
   },
