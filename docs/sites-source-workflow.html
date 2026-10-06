@@ -23,5 +23,6 @@
 <li>Save/deploy the exact returned source commit and archive using native Sites tools only when the release is ready. Preserve the current restricted audience until the migration's privacy gates pass. Record the GitHub commit, Sites commit, version and deployment result together in the release record.</li>
 </ol>
 <p>Source import alone performs none of these publication operations. Changes made directly in Sites after synchronization must be brought back into GitHub before the next release; avoid parallel implementation in both repositories.</p>
+<p>Windows publishing setup verified during step 5: use the installed pinned pnpm JavaScript entrypoint through process-scoped <code>SITES_PNPM_BIN</code>; add installed Git Bash to that publishing process's PATH; set <code>TAR_OPTIONS=--force-local</code> so GNU tar treats a Windows drive path as local. When the sandbox and network-enabled process have different Windows owners, apply a process-scoped Git <code>safe.directory</code> exception only to the exact publishing checkout. Do not relax global Git trust or persist repository credentials. Reuse the existing package cache with an explicit local store directory when installing; frozen-lockfile verification must complete successfully.</p>
 </section>
 </main></body></html>

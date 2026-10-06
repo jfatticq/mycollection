@@ -17,9 +17,12 @@ export async function migrationResponse(request: Request, env: MigrationEnv): Pr
     const body = await request.json() as {project_id?:string;d1?:string;r2?:string;action?:string};
     if (body.project_id !== projectId || body.d1 !== 'DB' || body.r2 !== 'BUCKET') return response({error:'Storage target confirmation does not match.'},409);
     const db = env.DB, bucket = env.BUCKET;
-    const tables = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all<{name:string}>();
-    const actual = tables.results.map(t=>t.name).filter(n=>!n.startsWith('sqlite_')&&!n.startsWith('_cf_')&&!['d1_migrations','__drizzle_migrations'].includes(n));
-    if ([...legacy,...target].some(n=>!actual.includes(n)) || actual.some(n=>![...legacy,...target].includes(n))) throw Error('Unexpected application schema; reset refused');
+    const tables = await db.prepare("SELECT name, sql FROM sqlite_master WHERE type='table'").all<{name:string;sql:string}>();
+    // This exact Sites migration ledger was verified from the live schema diagnostic.
+    const actual = tables.results.map(t=>t.name).filter(n=>!n.startsWith('sqlite_')&&!n.startsWith('_cf_')&&!['d1_migrations','__drizzle_migrations','__appgarden_migrations'].includes(n));
+    const missing = [...legacy,...target].filter(n=>!actual.includes(n));
+    const unexpected = actual.filter(n=>![...legacy,...target].includes(n));
+    if (missing.length || unexpected.length) return response({error:'Unexpected application schema; reset refused',missing,unexpected:tables.results.filter(t=>unexpected.includes(t.name))},409);
     const counts: Record<string,number> = {};
     for(const table of [...legacy,...target]) {
       const row = await db.prepare(`SELECT count(*) AS n FROM "${table}"${table==='operation_guards' ? " WHERE id NOT IN ('step5:legacy-cleared','step5:reset-complete')" : ''}`).first<{n:number}>();
