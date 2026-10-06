@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Joe Armory to G.I. Jeff's Files — Migration Plan</title>
+  <style>
+    :root{color-scheme:light;font-family:system-ui,sans-serif;color:#172536;background:#f3f6fa}
+    body{margin:0;line-height:1.6}main{max-width:1100px;margin:auto;padding:40px 24px 80px}
+    h1,h2,h3{line-height:1.25}h2{margin-top:2rem}section{background:white;padding:20px 24px;margin:20px 0;border:1px solid #d4dfe9;border-radius:8px}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid #d4dfe9}th{background:#edf2f7}
+    .table-scroll{overflow-x:auto}a{color:#165a9d}code{overflow-wrap:anywhere}.status{font-weight:600;color:#765100}
+    @media(max-width:600px){main{padding:20px 12px}section{padding:16px}th,td{padding:8px}}
+    @media print{body{background:white}main{max-width:none;padding:0}}
+  </style>
+</head>
+<body><main>
+<header>
+  <h1>Joe Armory to G.I. Jeff's Files</h1>
+  <p>Current implementation comparison and migration plan · October 5, 2026</p>
+  <p class="status">Confirmed direction: reuse the application and Site infrastructure; delete all existing application data.</p>
+  <p>This is an implementation plan. Inspection did not modify the deployed application, its database, its files, or its access settings. The <a href="requirements-and-technical-plan.html">requirements and technical plan</a> remains the target specification.</p>
+</header>
+<nav aria-label="Document contents"><a href="#evidence">Evidence</a> · <a href="#comparison">Comparison</a> · <a href="#mapping">Reset scope</a> · <a href="#sequence">Migration sequence</a> · <a href="#gates">Release gates</a> · <a href="#rollback">Rollback</a> · <a href="#decisions">Execution decisions</a></nav>
+<section id="evidence">
+  <h2>Inspected baseline</h2>
+  <p><a href="https://jeffs-joe-armory.jfattic.chatgpt.site">The Joe Armory</a> is an existing Sites application. Production version 18 has a successful deployment, uses D1 binding <code>DB</code> and R2 binding <code>BUCKET</code>, and currently restricts access to the owner. The source inspected matches production commit <code>4b86e32410426de77273330f53422c7538970601</code>.</p>
+  <p>Existing Sites project: <code>appgprj_6ac1cede871881919ac1c3b25bf1a6c5</code>. Reuse this project and its storage when implementing the migration; do not provision a replacement merely to change the site title. The production URL can remain while the displayed name becomes G.I. Jeff's Files.</p>
+  <p>Evidence consists of restored production source, deployment metadata, the live database table overview, and two sampled live collection rows. This review did not run browser workflows or application tests, perform a full database export, or verify every catalog release. Counts below describe source assets, not proof of catalog accuracy or completeness.</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Asset</th><th>Observed baseline</th><th>Evidence in production source</th></tr></thead>
+    <tbody>
+      <tr><td>Catalog</td><td>2,638 raw records; 2,453 canonical records after 185 alias mappings. Includes 697 Vintage ARAH and 157 25th Anniversary canonical records, plus other lines.</td><td><code>lib/catalog.json</code>, <code>lib/catalog.ts</code>, <code>lib/release-aliases.json</code></td></tr>
+      <tr><td>Enrichment</td><td>1,361 product-metadata keys, 1,406 accessory inventories, 955 accessory-image keys, and 16 curated identity keys. Key counts do not establish release coverage.</td><td><code>lib/product-metadata.json</code>, <code>lib/accessory-snapshots.json</code>, <code>lib/accessory-images.json</code>, <code>lib/catalog-identities.json</code></td></tr>
+      <tr><td>Live structured data</td><td>Four tables: items, settings, catalog_issues, catalog_checks. Records use an ID plus a JSON payload; there are no normalized user/collection ownership tables.</td><td><code>db/schema.ts</code>; live D1 overview</td></tr>
+      <tr><td>Application</td><td>Vinext/React application, collection/reference/unowned tabs, release matching, photos, editable parts and estimates, catalog reliability review tools.</td><td><code>app/page.tsx</code>, <code>app/api/</code>, <code>lib/collection-details.ts</code>, <code>docs/CATALOG_RELIABILITY.md</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section id="comparison">
+  <h2>Current site compared with the target</h2>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Area</th><th>Joe Armory today</th><th>Migration to target</th></tr></thead>
+    <tbody>
+      <tr><td>Hosting and storage</td><td>Existing Site, authenticated runtime, D1 and R2 bindings.</td><td>Reuse infrastructure and supported starter. Verify recovery, limits and public authentication behavior. Move source into this repository without replacing its Git history.</td></tr>
+      <tr><td>Identity and privacy — launch blocker</td><td>Owner-only Site access. Writes check a hardcoded owner email. Collection GET returns the shared inventory without application-level ownership filtering; photo GET checks object ID format, without a user-to-media authorization check.</td><td>Create stable user identities, explicit owner grant and one private-default collection per user. Scope every read/write and media request. Keep the current Site restricted until authorization tests pass. Changing Site access alone would expose the existing collection API.</td></tr>
+      <tr><td>Reference catalog</td><td>Bundled JSON catalog and enrichments, canonical aliases, source links, inferred identifiers and owner reliability reports.</td><td>Replace bundled catalog datasets with the new editable D1 catalog, starting empty. Add owner forms, CSV/JSON import, retirement and controlled merging. The owner supplies new catalog content.</td></tr>
+      <tr><td>Images, file cards and parts</td><td>Accessory inventory/image snapshots and placeholder paperwork; collection piece labels, expected counts and owned counts.</td><td>Use stable part occurrence IDs and nested parts, including multipack figures/vehicles. Add release image arrays and file-card images plus text. Start without legacy inventories or images.</td></tr>
+      <tr><td>Collection copies</td><td>JSON item rows can represent multiple copies through a quantity field, sharing condition, notes and photos.</td><td>Start with empty collections and one record per newly added copy. Support parts-only holdings and unidentified accessories. No grouped-copy conversion is needed.</td></tr>
+      <tr><td>Completeness and condition</td><td>Complete, Missing accessories, Figure only, Unknown; grades include Near mint and For parts. Packaging is separate. Sampled records include Complete with Loose packaging.</td><td>Apply the agreed definition to new entries: Complete requires original retail packaging and all expected parts. Add Unknown/Excellent and condition guidance. Legacy condition conflicts require no reconciliation because those records will be deleted.</td></tr>
+      <tr><td>Search and unowned view</td><td>Search, line/year filters, sorting and incremental display already exist. Any linked release in inventory is treated as owned.</td><td>Reuse components; keep search visible and collapse advanced filters. Add taxonomy and collection filters. Determine ownership from primary-item holdings; accessory-only and unconfirmed entries must not silently remove a release from the unowned view.</td></tr>
+      <tr><td>Public collections and counts</td><td>One shared owner inventory and collection-wide statistics.</td><td>Add visibility controls, safe signed-in public collection views, public/private totals and distinct-collector counts. Keep anonymous access catalog-only and login email private.</td></tr>
+      <tr><td>Import, export and deletion</td><td>No complete collector CSV/JSON import/export/template or account-deletion workflow found.</td><td>Add downloads, previewed validated imports, photos handled separately, owner-scoped exports and account/media deletion.</td></tr>
+      <tr><td>Photo identification</td><td>Multiple uploads, camera input, galleries and manual release linking, including unidentified entries.</td><td>Reuse capture/display. Add ranked single-item/accessory matching and explicit confirmation in phase 3; do not infer ownership from a candidate.</td></tr>
+      <tr><td>Valuation</td><td>Manual estimates, reviewed guide adjustments and comparable-sale calculations; source-page market fetches. Unreviewed guide values are excluded from totals.</td><td>Reuse applicable calculation code, but delete existing evidence, overrides and guide datasets. Add whole/part estimates, confidence, USD collection coverage and dated weekly snapshots in phase 3. Verify permitted evidence access and scheduling before enabling jobs.</td></tr>
+      <tr><td>Discussions and additional login</td><td>No discussion system found. Owner ChatGPT authentication is present; Microsoft/Google support is not established by this review.</td><td>Discussions follow core launch, before photo identification/valuation. Add signed-in scoped threads, reports/moderation and notifications. Verify additional providers and safe account linking separately.</td></tr>
+      <tr><td>Design and commerce</td><td>Existing restrained navy/steel/brass style, responsive grids and photo controls are reusable. No marketplace found.</td><td>Rename and adapt the existing interface. Commerce stays deferred under the target plan and current Sites policy; no payment setup during this migration.</td></tr>
+    </tbody>
+  </table></div>
+  <p>The highest-risk gap is application authorization. Existing owner-only hosting protects the current deployment, but its unscoped collection and photo reads are unsuitable for a public multi-user site. Private notes, purchase costs, photos and authenticated email must not cross user boundaries.</p>
+</section>
+<section id="mapping">
+  <h2>Confirmed reset scope</h2>
+  <p>The owner has directed that all existing application data be deleted. Replace conversion, backfill, reconciliation, legacy-ID redirects and preservation work with a clean start. This includes the existing reference catalog, not only the owner's collection.</p>
+  <ul>
+    <li>Delete all rows from the existing D1 application tables: items, settings, catalog_issues and catalog_checks. Remove obsolete tables through inspected schema migrations when appropriate.</li>
+    <li>Delete existing application file contents from the Site's R2 bucket, including collection uploads and catalog media, and remove their metadata references.</li>
+    <li>Remove bundled catalog/enrichment datasets, accessory inventories/images, alias maps, curated identity data, audit datasets, guide prices and any legacy seed/import mechanism that would repopulate them.</li>
+    <li>Retain reusable application code, generic UI assets, repository history, planning documents, hosting identity, runtime authentication configuration and DB/BUCKET infrastructure. These are not application records.</li>
+    <li>Initialize the new schema with no catalog releases or holdings. Provision the administrator from the verified runtime identity. The owner enters or imports new catalog data; test fixtures stay out of production.</li>
+  </ul>
+  <p>No legacy data backup or conversion is required for this reset. Normal backup/export and recovery requirements apply to new data after implementation. This document records the reset for implementation; it has not executed a live deletion.</p>
+</section>
+<section id="sequence">
+  <h2>Implementation sequence</h2>
+  <p><strong>Step 1 completed October 5, 2026:</strong> Production version 18 source is imported on <code>codex/joe-armory-migration</code>, retaining this repository history and the existing Site/storage identity. See the <a href="sites-source-workflow.html">source provenance and synchronization workflow</a>. No live reset or deployment was performed.</p>
+  <ol>
+    <li><strong>Import reusable source.</strong> Use an implementation branch such as <code>codex/joe-armory-migration</code>. Bring production source into this repository without replacing its Git history or planning documents. Retain production commit provenance, the existing hosting project and DB/BUCKET bindings. Establish one synchronization workflow between GitHub and Sites before publication.</li>
+    <li><strong>Implement the target model.</strong> Add the normalized schema, stable user identities, explicit administrator grant, one private-default collection per user, and authorized media delivery. Separate anonymous catalog endpoints from collector endpoints. Keep production owner-only until privacy gates pass.</li>
+    <li><strong>Remove legacy data dependencies.</strong> Replace bundled catalog lookups with D1 services and remove all legacy seeds, enrichment payloads and automatic repopulation. Reuse photo galleries, parts editing and suitable calculation logic against the new model.</li>
+    <li><strong>Complete launch functionality.</strong> Build owner catalog administration, per-copy collection editing, quick choices, condition tooltips, visibility controls, safe counts, correct unowned logic, CSV/JSON templates, validated import/export, deletion and branding.</li>
+    <li><strong>Reset and deploy.</strong> During a controlled write freeze, verify the exact Site project, DB binding and R2 bucket, then delete existing application rows and file contents and apply the new schema. Deploy the new application with an empty catalog and empty collections. Prevent the old application or seeds from restoring deleted data.</li>
+    <li><strong>Verify the clean start.</strong> Check zero catalog/holding counts and absence of legacy media and datasets. Run authorization and domain tests using isolated fixtures. Verify published sign-in and administrator setup. The owner can then populate the initial ARAH and 25th Anniversary catalog.</li>
+    <li><strong>Open access and deliver later phases.</strong> Enable the intended public audience only after privacy checks pass. Deliver discussions after core launch, additional providers once verified, and photo identification/expanded valuation in phase 3. Commerce remains deferred.</li>
+  </ol>
+  <p>The reset is an authorized destructive implementation step. No preservation adapter, copy-splitting reconciliation, alias conversion or legacy-photo compatibility layer is required. Existing applied migrations remain immutable; new migrations describe the target schema.</p>
+</section>
+<section id="gates">
+  <h2>Required release gates</h2>
+  <ul>
+    <li><strong>Clean state:</strong> No legacy rows, media contents, bundled catalog records or repopulation jobs remain in the active application. Newly created admin configuration is distinct from deleted inventory.</li>
+    <li><strong>Isolation:</strong> Collector A cannot read, modify, export or delete collector B's private records or photos, even using guessed IDs or direct requests. Anonymous requests receive catalog data only. Login email and private fields never appear in aggregate or public responses.</li>
+    <li><strong>Visibility and caching:</strong> Signed-in public collection views work; making a collection private removes access to records and media. Private responses and caches cannot leak across identities. Mutations enforce ownership and request-origin protections.</li>
+    <li><strong>Domain rules:</strong> Test new fixture entries for Snow Job with two skis and zero figure, an owned incomplete multipack, ownership-unconfirmed inventory, two differently conditioned copies, Complete versus Loose rules and catalog part revisions.</li>
+    <li><strong>Data interchange:</strong> New imports/exports preserve blank/null/zero distinctions and copy identity. Repeated or failed imports cannot create unintended duplicates. Export plus media can restore newly created collections.</li>
+    <li><strong>Production readiness:</strong> Build and relevant authorization/domain tests pass; empty-schema initialization works; published desktop/mobile and sign-in workflows work. Record storage limits and remaining provider dependencies.</li>
+  </ul>
+</section>
+<section id="rollback">
+  <h2>Recovery after the reset</h2>
+  <p>The reset intentionally has no legacy-data restoration path. Reverting code must not bring back removed catalog datasets or restore the old unscoped APIs. If deployment fails, keep the Site owner-restricted and repair or redeploy the new application against the empty target schema.</p>
+  <p>Once new users begin recording data, establish normal backup/export, media recovery and deletion-aware retention procedures. Protect that new data during subsequent releases. A code rollback does not reverse database changes.</p>
+</section>
+<section id="decisions">
+  <h2>Confirmed direction and remaining preparation</h2>
+  <p><strong>Confirmed:</strong> Delete existing catalog, collection, settings, audit, price and file data. Reuse the Site/project, URL, DB and BUCKET infrastructure and applicable source code. Rename the visible brand and start new collections private by default.</p>
+  <p><strong>Verify during implementation:</strong> Exact resource targets for deletion, removal of bundled datasets and reseeding paths, administrator platform subject, supported preview isolation, Microsoft/Google capabilities, model/evidence-provider costs and source synchronization.</p>
+  <p>No AI-assisted catalog-entry project or commerce implementation is included. This planning update has not changed production data.</p>
+</section>
+</main></body></html>

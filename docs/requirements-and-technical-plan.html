@@ -29,10 +29,10 @@
     <h1>G.I. Jeff's Files</h1>
     <p>Requirements and technical implementation plan</p>
     <p class="status">Requirements baseline v1 — implementation recommendations and dependencies identified</p>
-    <p>Updated October 5, 2026. Confirmed requirements are distinguished from recommendations and open decisions. This document describes the intended application; the application has not yet been implemented.</p>
+    <p>Updated October 5, 2026. Confirmed requirements are distinguished from recommendations and open decisions. This document describes the target application. The existing Joe Armory implements part of this scope; see the <a href="joe-armory-migration-plan.html">current-site comparison and migration plan</a> for the verified baseline and transition steps.</p>
   </header>
   <nav aria-label="Document contents">
-    <a href="#purpose">Purpose</a> · <a href="#scope">Delivery phases</a> · <a href="#requirements">Requirements</a> · <a href="#architecture">Architecture</a> · <a href="#schema">Data model</a> · <a href="#delivery">Implementation milestones</a> · <a href="#acceptance">Acceptance checks</a> · <a href="#questions">Dependencies and defaults</a>
+    <a href="#purpose">Purpose</a> · <a href="#scope">Delivery phases</a> · <a href="#requirements">Requirements</a> · <a href="#architecture">Architecture</a> · <a href="#schema">Data model</a> · <a href="#delivery">Implementation milestones</a> · <a href="#acceptance">Acceptance checks</a> · <a href="#questions">Dependencies and defaults</a> · <a href="joe-armory-migration-plan.html">Joe Armory migration</a>
   </nav>
   <section id="purpose">
     <h2>Purpose and audience</h2>
@@ -169,7 +169,7 @@
     <p>The repository currently contains a README, license, and Git configuration, with no application implementation.</p>
     <ul>
       <li><strong>Recommended:</strong> Use a Sites application with server-side routes for durable data and authorization, rather than a static-only application.</li>
-      <li><strong>Recommended:</strong> Use Sites-managed D1 for relational catalog, collection, user profile, and discussion records, and R2 for image and file storage. Keep image metadata and ownership in the database.</li>
+      <li><strong>Confirmed storage requirement:</strong> Use Sites-managed D1 for catalog, collection, user, and media metadata, and R2 for file contents, including images. Joe Armory already declares DB and BUCKET; preserve its existing bindings and resources during migration.</li>
       <li><strong>Required:</strong> Enforce owner-only catalog writes and collection ownership checks on the server for every read or write that requires restricted access.</li>
       <li><strong>Recommended:</strong> Validate admin form and import submissions using the same rules. Document CSV/JSON schemas for nested parts, images, file cards, and variant relationships. Validate and show import errors before committing data; import identifier and merge behavior remain open.</li>
       <li><strong>Recommended:</strong> Version collection CSV/JSON templates and exports. Include stable release, owned-entry, and part identifiers; distinguish unknown quantities from zero. Document CSV representation of nested parts, condition grades, dates, and currencies, with examples. Import only into the authenticated collector's own collection and preserve field-level privacy for exports.</li>
@@ -214,7 +214,11 @@
   </section>
   <section id="architecture">
     <h2>Application architecture and screens</h2>
-    <p><strong>Recommended stack:</strong> The supported Sites Vinext/React starter with TypeScript, server-rendered routes and server APIs, Sites-managed D1 for records, and R2 for media. Use the bundled UI primitives for filters, tables, dialogs, expandable panels, and tooltips. Confirm the starter and capabilities during project setup; do not scaffold an independent login stack.</p>
+    <h3>Sites configuration and project association</h3>
+    <p>Public catalog access and collector sign-in are separate controls. Use an authentication-enabled Site: ChatGPT at launch, with external-provider support a required follow-up. The documentation describes that site shape but does not establish the Microsoft/Google configuration path. <a href="https://learn.chatgpt.com/docs/sites">Sites documentation</a>.</p>
+    <p>The local Codex project MyCollection points to this repository. The existing Joe Armory Site uses project <code>appgprj_6ac1cede871881919ac1c3b25bf1a6c5</code> with D1/R2 bindings DB and BUCKET. Import its production source and existing <code>.openai/hosting.json</code> into this repository during implementation, preserving repository history and the existing hosting identity. Establish source synchronization before deployment; the current planning change does not import or deploy the application.</p>
+    <p>If MyCollection instead refers to an API Platform project, that is a separate identity for model API usage, not the Sites hosting identifier. Its API credentials can scope later inference usage; do not substitute that ID into the hosting manifest. <a href="https://developers.openai.com/api/reference/overview">OpenAI API project usage</a>.</p>
+    <p><strong>Recommended stack:</strong> Reuse Joe Armory's supported Sites Vinext/React application with TypeScript, server routes and APIs, Sites-managed D1 for records, and R2 for media. Adapt existing components and bundled UI primitives for filters, tables, dialogs, expandable panels, and tooltips. Verify authentication capabilities during migration; do not scaffold an independent login stack.</p>
     <p>Browser requests flow through Sites authentication to server-side authorization and application services, then D1 and R2. Catalog reads are anonymous; personal records, counts, and community APIs require identity. All uploads go through authorized server endpoints. Future identification and valuation adapters remain behind server interfaces so providers can change without changing collection ownership.</p>
     <div class="table-scroll"><table>
       <thead><tr><th>Route/screen</th><th>Purpose and access</th></tr></thead>
@@ -313,7 +317,7 @@
     <h2>Implementation milestones in this repository</h2>
     <ol>
       <li><strong>Capability verification:</strong> Confirm public Sites availability, ChatGPT sign-in, D1/R2 access and limits, source synchronization, media privacy, export/recovery, and account deletion. Record Microsoft/Google feasibility separately; do not block phase 1 on those providers.</li>
-      <li><strong>Foundation:</strong> Initialize the supported starter in the existing repository without replacing its Git history. Add theme tokens, public catalog shell, sign-in, schema/migrations, owner authorization, and durable storage helpers.</li>
+      <li><strong>Foundation and migration:</strong> Follow the <a href="joe-armory-migration-plan.html">Joe Armory migration plan</a>: import reusable production source without replacing repository history; retain existing Site/storage bindings; delete all existing application data and file contents, including bundled catalog datasets; initialize the target schema and empty catalog/collections; add stable identity and per-user authorization. No legacy conversion or preservation is required. Keep owner-only Site access until privacy gates pass.</li>
       <li><strong>Catalog:</strong> Build owner forms, imports, release links, images, parts hierarchy, file cards, public search/detail, revision changes, retirement, and merge. Test with owner-provided A Real American Hero and 25th Anniversary records.</li>
       <li><strong>Collections:</strong> Add one collection per user, separate owned copies, complete/partial/unknown addition, nullable parts quantities, conditions/tooltips, private fields, visibility, counts, unowned view, correction review, CSV/JSON templates, export, and deletion.</li>
       <li><strong>Launch verification:</strong> Execute the acceptance scenarios below, verify fresh migrations and data export/restore, build, then publish the complete catalog/collection release with the intended public audience. Keep preview data distinct from the owner's real collection.</li>
@@ -323,7 +327,7 @@
       <li><strong>Future commerce:</strong> Revisit hosting/policies before adding payments, listings, messaging, fulfillment, and the accepted return process. No commerce database or payment setup is required for current Sites milestones.</li>
     </ol>
     <p><strong>Proposed source organization:</strong> <code>app/</code> routes and APIs; <code>components/</code> interface; <code>lib/auth/</code>, <code>lib/catalog/</code>, <code>lib/collection/</code>, <code>lib/media/</code>, and later provider adapters; <code>db/schema.ts</code> and <code>drizzle/</code> migrations; <code>public/templates/</code> import downloads; <code>tests/</code> meaningful authorization/domain/import checks; <code>docs/</code> this HTML plan. Use the starter's actual supported conventions during setup.</p>
-    <p>Save schema migrations with code, inspect them before deployment, and treat applied migrations as immutable. A code rollback does not undo data migrations. Make recoverable backups before destructive data changes and verify restore procedures, including protected media access.</p>
+    <p>Save schema migrations with code, inspect them before deployment, and treat applied migrations as immutable. A code rollback does not undo data migrations. The initial Joe Armory reset intentionally discards legacy data without a preservation requirement. For new data collected afterward, make recoverable backups before destructive changes and verify restore procedures, including protected media access.</p>
   </section>
   <section id="acceptance">
     <h2>Acceptance scenarios and release gates</h2>

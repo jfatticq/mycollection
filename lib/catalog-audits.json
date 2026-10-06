@@ -1,0 +1,21 @@
+[
+  {
+    "id": "copperhead-us-1984-2010",
+    "name": "Copperhead US 3.75-inch archive versions, 1984\u20132010",
+    "checked": "2026-10-05",
+    "source": "https://www.yojoe.com/action/09/copperhead7.shtml",
+    "status": "reconciled",
+    "expected": 8,
+    "releaseIds": [
+      "yojoe-copperhead-v1-1984",
+      "9189",
+      "yojoe-copperhead-v3-2007",
+      "yojoe-copperhead-v4-2008",
+      "yojoe-copperhead-v5-2009",
+      "yojoe-copperhead-v6-2009",
+      "yojoe-copperhead-v7-2009",
+      "yojoe-copperhead-v8-2010"
+    ],
+    "note": "All eight versions linked from the archive version index are represented. This does not certify international releases, paint variations, all package configurations, or later figures."
+  }
+]

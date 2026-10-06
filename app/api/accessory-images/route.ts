@@ -1,0 +1,2 @@
+import {accessoryImages} from '@/lib/accessory-images';
+export async function GET(request:Request){const id=new URL(request.url).searchParams.get('id');if(!id)return Response.json({error:'Choose a release.'},{status:400});try{return Response.json(await accessoryImages(id)||{images:[]});}catch{return Response.json({error:'Accessory photos are unavailable right now. View the release source or retry.'},{status:503});}}

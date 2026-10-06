@@ -1,0 +1,316 @@
+{
+  "3308": {
+    "url": "https://www.yojoe.com/action/07/cobraairtrooper.shtml",
+    "note": "YoJoe identifies v1, including its wave 4 single-card rerelease; ActionFigure411 dates that single-card catalog entry to 2008. Do not apply to 2011 v2 or transfer five-pack contents.",
+    "inventory": [
+      {
+        "id": "main",
+        "label": "Figure",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-1",
+        "label": "Blue air-trooper helmet / face mask",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-2",
+        "label": "Blue infantry helmet",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-3",
+        "label": "Yellow webgear",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-4",
+        "label": "Black rifle",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-5",
+        "label": "Blue blaster",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-6",
+        "label": "Blue JUMP jet pack with attached cord",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-7",
+        "label": "Knife",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "air-gear-8",
+        "label": "Black display stand",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "paperwork",
+        "label": "File card",
+        "quantity": 1,
+        "owned": null
+      }
+    ],
+    "status": "reviewed",
+    "inventoryNote": "Reviewed against the accessories paragraph, both helmet photographs and filecard section. Jet-pack cord is listed with its assembly, not assumed to be detachable. Five-pack music box and other figures are excluded from the single-card inventory."
+  },
+  "3295": {
+    "url": "https://www.yojoe.com/action/07/flint11.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Flint (v11). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3298": {
+    "url": "https://www.yojoe.com/action/07/beachhead10.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Beachhead (v10). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3299": {
+    "url": "https://www.yojoe.com/action/07/buzzer4.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Buzzer (v4). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3301": {
+    "url": "https://www.yojoe.com/action/07/ladyjaye6.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Lady Jaye (v6). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3302": {
+    "url": "https://www.yojoe.com/action/07/serpentor4.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Serpentor (v4). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3303": {
+    "url": "https://www.yojoe.com/action/07/firefly14.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Firefly (v14). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3305": {
+    "url": "https://www.yojoe.com/action/07/sgtstalker9.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Sgt. Stalker (v9). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3307": {
+    "url": "https://www.yojoe.com/action/07/zartan13.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Zartan (v13). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3487": {
+    "url": "https://www.yojoe.com/action/07/rowdyroddypiper.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2007 index: Rowdy Roddy Piper (v1). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3312": {
+    "url": "https://www.yojoe.com/action/08/gungho19.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Gung Ho (v19). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3318": {
+    "url": "https://www.yojoe.com/action/08/sgtflash2.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Sgt. Flash (v2). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3320": {
+    "url": "https://www.yojoe.com/action/08/snowjob3.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Snow Job (v3). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3328": {
+    "url": "https://www.yojoe.com/action/08/spiritironknife3.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Spirit Iron-Knife (v3). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3357": {
+    "url": "https://www.yojoe.com/action/08/barbecue4.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Barbecue (v4). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3359": {
+    "url": "https://www.yojoe.com/action/08/sgtbazooka3.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Sgt. Bazooka (v3). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3360": {
+    "url": "https://www.yojoe.com/action/08/snowserpent8.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Snow Serpent (v8). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3362": {
+    "url": "https://www.yojoe.com/action/08/cobrabazookatrooper.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Cobra Bazooka Trooper (v1). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3366": {
+    "url": "https://www.yojoe.com/action/08/paraviper.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Cobra Para-Viper (v1). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3363": {
+    "url": "https://www.yojoe.com/action/08/crocmaster3.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Croc Master (v3). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3372": {
+    "url": "https://www.yojoe.com/action/08/eel4.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Cobra Eel (v4). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3371": {
+    "url": "https://www.yojoe.com/action/08/sgtairborne3.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Sgt. Airborne (v3). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3375": {
+    "url": "https://www.yojoe.com/action/08/matttrakker.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Specialist Trakker (v1). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3377": {
+    "url": "https://www.yojoe.com/action/08/cobradiver.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Cobra Diver (v1). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3378": {
+    "url": "https://www.yojoe.com/action/08/ninjaviper2.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Cobra Ninja Viper (v2). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3379": {
+    "url": "https://www.yojoe.com/action/08/crimsonguard14.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Python Crimson Guard (v14). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3381": {
+    "url": "https://www.yojoe.com/action/08/tripwire5.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Tripwire (v5). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "3385": {
+    "url": "https://www.yojoe.com/action/08/torch3.shtml",
+    "note": "Unique exact character name and release year in the YoJoe 2008 index: Dreadnok Torch (v3). No fuzzy or cross-year match. Review package variants against this reference."
+  },
+  "2172": {
+    "url": "https://www.3djoes.com/cobra-rattler.html",
+    "note": "1984 US Cobra Rattler. Parts descriptions and the pilot filecard are shown on the exact release page.",
+    "status": "partial",
+    "inventoryNote": "Major removable parts and all 14 bombs/missiles counted against the source parts photograph and blueprint. Missile types are distinguished by visible shape and markings; small fittings and remaining paperwork still need review. Source images are linked, not republished.",
+    "inventory": [
+      {
+        "id": "main",
+        "label": "Rattler airframe",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-3",
+        "label": "Left engine cover",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-4",
+        "label": "Right engine cover",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-5",
+        "label": "Front fuselage panel",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-6",
+        "label": "Rear fuselage panel",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-7",
+        "label": "Front battle-damaged replacement panel",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-8",
+        "label": "Rear battle-damaged replacement panel",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-9",
+        "label": "Pilot canopy",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-10",
+        "label": "Gunner canopy",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-11",
+        "label": "Wild Weasel pilot figure (v1)",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-12",
+        "label": "Wild Weasel file card",
+        "quantity": 1,
+        "owned": null
+      },
+      {
+        "id": "rattler-bombs",
+        "label": "Black bomb with Cobra marking",
+        "quantity": 6,
+        "owned": null
+      },
+      {
+        "id": "rattler-missile-long",
+        "label": "Black narrow finned missile (unmarked)",
+        "quantity": 4,
+        "owned": null
+      },
+      {
+        "id": "rattler-missile-pointed",
+        "label": "Checkerboard-marked missile \u2014 pointed nose",
+        "quantity": 2,
+        "owned": null
+      },
+      {
+        "id": "rattler-missile-rounded",
+        "label": "Checkerboard-marked missile \u2014 rounded nose",
+        "quantity": 2,
+        "owned": null
+      }
+    ]
+  },
+  "yojoe-copperhead-v1-1984": {
+    "url": "https://www.yojoe.com/action/84/copperhead.shtml",
+    "status": "partial"
+  },
+  "yojoe-copperhead-v3-2007": {
+    "url": "https://www.yojoe.com/action/07/copperhead3.shtml",
+    "status": "partial"
+  },
+  "yojoe-copperhead-v4-2008": {
+    "url": "https://www.yojoe.com/action/08/copperhead4.shtml",
+    "status": "partial"
+  },
+  "yojoe-copperhead-v5-2009": {
+    "url": "https://www.yojoe.com/action/09/copperhead5.shtml",
+    "status": "partial"
+  },
+  "yojoe-copperhead-v6-2009": {
+    "url": "https://www.yojoe.com/action/09/copperhead6.shtml",
+    "status": "partial"
+  },
+  "yojoe-copperhead-v7-2009": {
+    "url": "https://www.yojoe.com/action/09/copperhead7.shtml",
+    "status": "reviewed"
+  },
+  "yojoe-copperhead-v8-2010": {
+    "url": "https://www.yojoe.com/action/10/copperhead8.shtml",
+    "status": "partial"
+  },
+  "9189": {
+    "url": "https://www.yojoe.com/action/89/pythoncopperhead.shtml",
+    "status": "partial"
+  },
+  "yojoe-ace-v1-1983": {
+    "url": "https://www.yojoe.com/action/83/ace.shtml",
+    "status": "partial"
+  },
+  "yojoe-gung-ho-v20-2009": {
+    "url": "https://www.yojoe.com/action/09/gungho20.shtml",
+    "status": "partial"
+  }
+}

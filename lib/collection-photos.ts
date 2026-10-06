@@ -1,0 +1,2 @@
+export function collectionPhotos(item:{photo?:string;photos?:string[]}):string[]{return [...new Set([item.photo,...(Array.isArray(item.photos)?item.photos:[])].filter((src):src is string=>typeof src==='string'&&!!src))];}
+export function withCollectionPhotos<T extends {photo?:string;photos?:string[]}>(item:T,photos:string[]):T{const unique=[...new Set(photos)];return {...item,photos:unique,photo:unique[0]||''};}
