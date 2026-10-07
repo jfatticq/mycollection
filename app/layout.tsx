@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./armory-design.css";
+import "./digital-camo.css";
 
 export const metadata: Metadata = {
   title: "G.I. Jeff's Files",
@@ -21,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased digital-camo">{children}</body>
     </html>
   );
 }
