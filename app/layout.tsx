@@ -4,7 +4,7 @@ import "./armory-design.css";
 import "./digital-camo.css";
 
 export const metadata: Metadata = {
-  title: "G.I. Jeff's Files",
+  title: "G.I. Jeff",
   description: "Explore the G.I. Joe catalog and record your collection, conditions, parts and photos.",
   other: {
     "codex-preview": "development",
