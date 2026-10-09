@@ -1,0 +1,6 @@
+import {actor,mutation,json,failure} from '@/lib/auth/access';
+import {db} from '@/lib/db';
+import {input,id} from '@/lib/discussions';
+import {limit} from '@/lib/limits';
+export async function GET(request:Request){try{const a=await actor(request);const notifications=(await db().prepare(`SELECT n.post_id,n.thread_id,n.created_at,n.read_at,t.title,t.release_id,r.name AS release_name FROM discussion_notifications n JOIN discussion_threads t ON t.id=n.thread_id LEFT JOIN catalog_releases r ON r.id=t.release_id WHERE n.user_id=? ORDER BY n.created_at DESC,n.post_id LIMIT 50`).bind(a.id).all()).results;const unread=await db().prepare('SELECT count(*) AS n FROM discussion_notifications WHERE user_id=? AND read_at IS NULL').bind(a.id).first<{n:number}>();return json({notifications,unread:unread?.n??0});}catch(e){return failure(e);}}
+export async function POST(request:Request){try{mutation(request);const a=await actor(request);await limit(a.id,'notifications',60,60);const b=await input(request);if(b.postId)await db().prepare('UPDATE discussion_notifications SET read_at=? WHERE user_id=? AND post_id=?').bind(new Date().toISOString(),a.id,id(b.postId)).run();else await db().prepare('UPDATE discussion_notifications SET read_at=? WHERE user_id=? AND read_at IS NULL').bind(new Date().toISOString(),a.id).run();return json({ok:true});}catch(e){return failure(e);}}

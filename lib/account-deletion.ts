@@ -1,5 +1,6 @@
 import { db, bucket } from '@/lib/db';
 import { Actor, AccessError, subjectUserId } from '@/lib/auth/access';
+import { deletionStatements } from '@/lib/discussions';
 export async function resumeDeletion(userId: string) {
     const job = await db().prepare('SELECT remaining_keys FROM deletion_jobs WHERE user_id=?').bind(userId).first<{
         remaining_keys: string;
@@ -41,6 +42,7 @@ export async function deleteAccount(a: Actor, deletedAt?:string) {
         store.prepare('DELETE FROM import_runs WHERE user_id=?').bind(a.id),
         store.prepare('DELETE FROM collections WHERE user_id=?').bind(a.id),
         store.prepare('DELETE FROM rate_limits WHERE key LIKE ?').bind(a.id + ':%'),
+        ...deletionStatements(a.id),
     ]);
     return resumeDeletion(a.id);
 }
@@ -57,7 +59,7 @@ export async function reapplyDeletionLedger(cursor?:string){
     const user=await db().prepare('SELECT id FROM users WHERE id=?').bind(record.userId).first();
     if(!user)await db().prepare("INSERT INTO users(id,display_name,deleted_at,created_at) VALUES(?,'Deleted collector',?,?)").bind(record.userId,record.deletedAt,record.deletedAt).run();
     if(collection){await db().prepare('DELETE FROM deletion_jobs WHERE user_id=?').bind(record.userId).run();await deleteAccount({id:record.userId,collectionId:collection.id,isAdmin:false},record.deletedAt);}
-    else await db().batch([db().prepare("UPDATE users SET email=NULL,display_name='Deleted collector',deleted_at=? WHERE id=?").bind(record.deletedAt,record.userId),db().prepare('DELETE FROM identities WHERE user_id=?').bind(record.userId),db().prepare('DELETE FROM user_roles WHERE user_id=?').bind(record.userId)]);
+    else await db().batch([db().prepare("UPDATE users SET email=NULL,display_name='Deleted collector',deleted_at=? WHERE id=?").bind(record.deletedAt,record.userId),db().prepare('DELETE FROM identities WHERE user_id=?').bind(record.userId),db().prepare('DELETE FROM user_roles WHERE user_id=?').bind(record.userId),...deletionStatements(record.userId)]);
     applied++;
   }
   return {applied,nextCursor:page.truncated?page.cursor:null};

@@ -217,7 +217,7 @@ export default function Home() {
     const lines = [...new Set([...catalog.lines, ...items.map(e => e.line).filter((l): l is string => !!l)])].sort();
     const years = [...new Set([...catalog.years, ...items.map(e => e.year).filter((y): y is number => y !== null)])].sort((a, b) => a - b);
     return <main>
-    <header><a className="brand" href="/"><Shield size={30}/><span>G.I. JEFF</span></a><div className="account-actions">{account ? <><a href="/collectors">Collectors</a><a href="/settings">Settings</a><a href="/transfer">Import / export</a>{account.role === 'admin' && <a href="/admin">Add / edit catalog items</a>}<a href="/signout-with-chatgpt?return_to=%2F" target="_top">Sign out</a></> : <a className="primary" href={signIn} target="_top">Sign in</a>}</div></header>
+    <header><a className="brand" href="/"><Shield size={30}/><span>G.I. JEFF</span></a><div className="account-actions">{account ? <><a href="/collectors">Collectors</a><a href="/discussions">Discussions</a><a href="/notifications">Notifications</a><a href="/settings">Settings</a><a href="/transfer">Import / export</a>{account.role === 'admin' && <a href="/admin">Add / edit catalog items</a>}<a href="/signout-with-chatgpt?return_to=%2F" target="_top">Sign out</a></> : <a className="primary" href={signIn} target="_top">Sign in</a>}</div></header>
     {account?.needsSetup && <ProfileSetup onSave={() => void loadAccount()}/>}
     <section className="intro"><div><p className="eyebrow">COLLECTOR FILES</p><h1>{view === 'collection' ? 'My collection' : view === 'unowned' ? 'Unowned releases' : 'Reference catalog'}</h1><p className="sub">{view === 'collection' ? 'Each copy has its own condition, parts and photos.' : 'Explore figures, vehicles, playsets and their parts.'}</p></div>{account && <button className="primary" onClick={() => { setEditCatalog(null); setLabels({}); setEditError(''); setLooseName(''); setEdit(newDraft()); }}><Plus size={18}/> Add unidentified item</button>}</section>
     {accountError && <p role="alert" className="notice">{accountError} <button onClick={loadAccount}>Retry sign-in check</button></p>}
@@ -248,7 +248,7 @@ export default function Home() {
       <h3>Expected parts</h3>{detail.parts.length ? <ul>{detail.parts.map(part => <li key={part.id}>{part.parent_id && <span>{detail.parts.find(p => p.id === part.parent_id)?.name} / </span>}{part.name} · {part.expected_quantity ?? 'Quantity unknown'} per release</li>)}</ul> : <p>No parts list has been entered yet.</p>}
       {detail.fileCards.map(card => <section className="file-card" key={card.id}><h3>File card</h3><p>{card.text || 'Text not entered yet.'}</p></section>)}
       {!!detail.related.length && <section><h3>Related releases</h3>{detail.related.map(r => <button className="outline" key={r.id + r.kind} onClick={() => openRelease(r.id)}>{r.name} · {r.kind}</button>)}</section>}
-      {account && <ReleaseCounts id={detail.release.id}/>}
+      {account && <><ReleaseCounts id={detail.release.id}/><p><a href={'/discussions?release=' + encodeURIComponent(detail.release.id)}>Discuss this release</a></p></>}
       {account ? <button className="primary" disabled={!!detail.release.retired} onClick={() => startEntry(detail)}><Plus size={18}/> Add a copy to my collection</button> : <a className="primary" href={signIn} target="_top">Sign in to add to your collection</a>}
     </>}</DialogContent></Dialog>
     <Dialog open={!!edit} onOpenChange={open => {

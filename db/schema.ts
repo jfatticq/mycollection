@@ -6,3 +6,4 @@ export const catalogChecks=sqliteTable('catalog_checks',{id:text('id').primaryKe
 
 // Legacy tables remain until the scheduled reset.
 export * from './target-schema';
+export * from './community-schema';
