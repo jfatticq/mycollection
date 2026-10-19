@@ -5,6 +5,10 @@ export type CatalogPart = {
     id: string;
     name: string;
     kind: string;
+    part_type?:string;
+    main_component?:number;
+    linked_release_id?:string|null;
+    linked_release_name?:string|null;
     parent_id: string | null;
     expected_quantity: number | null;
 };

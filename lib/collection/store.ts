@@ -44,7 +44,7 @@ export async function prepareEntry(a: Actor, input: unknown) {
         if (!release || (release.retired && old?.release_id !== item.releaseId))
             throw new AccessError(400, 'Choose a published catalog release.');
         revision = release.revision;
-        parts = (await store.prepare('SELECT id,kind,expected_quantity,retired FROM catalog_parts WHERE release_id=?').bind(item.releaseId).all<Part>()).results;
+        parts = (await store.prepare('SELECT id,kind,main_component,expected_quantity,retired FROM catalog_parts WHERE release_id=?').bind(item.releaseId).all<Part>()).results;
     }
     else if (item.parts.length)
         throw new AccessError(400, 'Catalog parts require a catalog release.');

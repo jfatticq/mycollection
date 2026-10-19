@@ -1,3 +1,4 @@
+import {physicalPartType} from '@/lib/catalog-parts';
 import { db } from '@/lib/db';
 import { Actor, AccessError } from '@/lib/auth/access';
 import {catalogAssociations,prepareFactions} from '@/lib/catalog-associations';
@@ -35,8 +36,8 @@ export async function mergeReleases(a: Actor, input: any) {
             clones.add(part.id);
         }
         else {
-            if (!plan.targetParts.some(p => p.id === decision && p.kind === part.kind) || used.has(decision))
-                throw new AccessError(400, 'Each part needs a unique target of the same kind or Preserve.');
+            if (!plan.targetParts.some(p => p.id === decision && p.kind === part.kind && (p.part_type??physicalPartType(p.kind,plan.target.kind))===(part.part_type??physicalPartType(part.kind,plan.source.kind))) || used.has(decision))
+                throw new AccessError(400, 'Each part needs a unique target of the same type and ownership role or Preserve.');
             used.add(decision);
             ids.set(part.id, decision);
         }
@@ -48,7 +49,7 @@ export async function mergeReleases(a: Actor, input: any) {
     const inserted = new Set<string>();
     function insert(part: any) { if (!clones.has(part.id) || inserted.has(part.id))
         return; if (part.parent_id)
-        insert(plan.parts.find(p => p.id === part.parent_id)); inserted.add(part.id); statements.push(store.prepare('INSERT INTO catalog_parts(id,release_id,parent_id,name,kind,expected_quantity,sort_order,retired,linked_release_id) VALUES(?,?,?,?,?,?,?,1,?)').bind(ids.get(part.id)!, plan.target.id, part.parent_id ? ids.get(part.parent_id)! : null, part.name, part.kind, part.expected_quantity, part.sort_order, part.linked_release_id)); }
+        insert(plan.parts.find(p => p.id === part.parent_id)); inserted.add(part.id); statements.push(store.prepare('INSERT INTO catalog_parts(id,release_id,parent_id,name,kind,expected_quantity,sort_order,retired,linked_release_id,part_type,main_component) VALUES(?,?,?,?,?,?,?,1,?,?,?)').bind(ids.get(part.id)!, plan.target.id, part.parent_id ? ids.get(part.parent_id)! : null, part.name, part.kind, part.expected_quantity, part.sort_order, part.linked_release_id,part.part_type??physicalPartType(part.kind,plan.source.kind),part.main_component??Number(part.kind==='primary'))); }
     plan.parts.forEach(insert);
     // Snapshot live quantities inside this same D1 transaction, not from preflight reads.
     for (const [oldId, newId] of ids)

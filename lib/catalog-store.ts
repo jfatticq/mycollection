@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { Actor, AccessError } from '@/lib/auth/access';
+import {physicalPartType,partRole} from '@/lib/catalog-parts';
 import {prepareFactions} from '@/lib/catalog-associations';
 const short = z.string().trim().max(200).nullable().default(null);
-const part = z.object({ id: z.string().min(1).max(128), parentId: z.string().min(1).max(128).nullable().default(null), name: z.string().trim().min(1).max(200), kind: z.enum(['primary', 'accessory', 'packaging', 'paperwork']), expectedQuantity: z.number().int().min(0).max(9999).nullable(), sortOrder: z.number().int().min(0).max(1000).default(0), linkedReleaseId: z.string().min(1).max(128).nullable().default(null) }).strict();
+const part = z.object({ id: z.string().min(1).max(128), parentId: z.string().min(1).max(128).nullable().default(null), name: z.string().trim().min(1).max(200), kind: z.enum(['primary', 'accessory', 'packaging', 'paperwork']).default('accessory'), partType:z.enum(['figure','vehicle','accessory','packaging','paperwork','other']).optional(),mainComponent:z.boolean().optional(), expectedQuantity: z.number().int().min(0).max(9999).nullable(), sortOrder: z.number().int().min(0).max(1000).default(0), linkedReleaseId: z.string().min(1).max(128).nullable().default(null) }).strict().refine(p=>!(p.mainComponent&&((p.partType??p.kind)==='packaging'||(p.partType??p.kind)==='paperwork')),'Packaging and paperwork cannot be main components.');
 export const releaseInput = z.object({
     id: z.string().min(1).max(128).optional(), expectedRevision: z.number().int().positive().optional(),
     name: z.string().trim().min(1).max(200), kind: z.enum(['figure', 'vehicle', 'playset', 'accessory', 'multipack', 'other']),
@@ -16,7 +17,7 @@ export const releaseInput = z.object({
     fileCards: z.array(z.object({ id: z.string().min(1).max(128), text: z.string().max(30000) }).strict()).max(20).default([]),
     taxonomyIds: z.array(z.string().min(1).max(128)).max(100).default([]),
     related: z.array(z.object({ id: z.string().min(1).max(128), kind: z.enum(['variant','repaint','international','packaging','related']) }).strict()).max(100).default([]),
-}).strict().transform(r=>({...r,characters:r.characters??(r.character?[{name:r.character,partId:null}]:[]),factions:r.factions??(r.faction?[r.faction]:[])}));
+}).strict().transform(r=>({...r,parts:r.parts.map(p=>{const partType=p.partType??physicalPartType(p.kind,r.kind),mainComponent=(partType==='packaging'||partType==='paperwork')?false:(p.mainComponent??p.kind==='primary');return {...p,partType,mainComponent,kind:partRole(partType,mainComponent)};}),characters:r.characters??(r.character?[{name:r.character,partId:null}]:[]),factions:r.factions??(r.faction?[r.faction]:[])}));
 export async function prepareRelease(a: Actor, input: unknown, allowedIds: string[] = []) {
     if (!a.isAdmin)
         throw new AccessError(403, 'Catalog administrator required.');
@@ -41,7 +42,7 @@ export async function prepareRelease(a: Actor, input: unknown, allowedIds: strin
         throw new AccessError(400, 'Duplicate catalog component ID.');
     // Sort parents before children and reject cycles, including indirect cycles.
     const ordered: typeof r.parts = [], visited = new Set<string>(), visiting = new Set<string>();
-    function visit(p: typeof part._output) {
+    function visit(p: typeof r.parts[number]) {
         if (visited.has(p.id))
             return;
         if (visiting.has(p.id))
@@ -64,6 +65,7 @@ export async function prepareRelease(a: Actor, input: unknown, allowedIds: strin
         }>();
         if (existing && existing.release_id !== id)
             throw new AccessError(400, 'Part ID belongs to another release.');
+        if(p.linkedReleaseId===id)throw new AccessError(400,'A part reference must point to a different catalog item.');
         if (p.linkedReleaseId && !allowedIds.includes(p.linkedReleaseId) && !await store.prepare('SELECT id FROM catalog_releases WHERE id=?').bind(p.linkedReleaseId).first())
             throw new AccessError(400, 'Linked release not found.');
     }
@@ -78,7 +80,7 @@ export async function prepareRelease(a: Actor, input: unknown, allowedIds: strin
     const statements = [store.prepare(`INSERT INTO catalog_releases(id,name,kind,character,year,line,series,sub_series,wave,scale,faction,market,manufacturer,product_code,upc,retail_price_cents,retail_currency,revision,retired,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,kind=excluded.kind,character=excluded.character,year=excluded.year,line=excluded.line,series=excluded.series,sub_series=excluded.sub_series,wave=excluded.wave,scale=excluded.scale,faction=excluded.faction,market=excluded.market,manufacturer=excluded.manufacturer,product_code=excluded.product_code,upc=excluded.upc,retail_price_cents=excluded.retail_price_cents,retail_currency=excluded.retail_currency,revision=excluded.revision,retired=excluded.retired,updated_at=excluded.updated_at`).bind(id, r.name, r.kind, r.character, r.year, r.line, r.series, r.subSeries, r.wave, r.scale, r.faction, r.market, r.manufacturer, r.productCode, r.upc, r.retailPriceCents, r.retailCurrency, revision, Number(r.retired), now, now),
         store.prepare('UPDATE catalog_parts SET retired=1 WHERE release_id=?').bind(id)];
     for (const p of ordered)
-        statements.push(store.prepare(`INSERT INTO catalog_parts(id,release_id,parent_id,name,kind,expected_quantity,sort_order,retired,linked_release_id) VALUES(?,?,?,?,?,?,?,0,?) ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,name=excluded.name,kind=excluded.kind,expected_quantity=excluded.expected_quantity,sort_order=excluded.sort_order,retired=0,linked_release_id=excluded.linked_release_id WHERE catalog_parts.release_id=excluded.release_id`).bind(p.id, id, p.parentId, p.name, p.kind, p.expectedQuantity, p.sortOrder, p.linkedReleaseId));
+        statements.push(store.prepare(`INSERT INTO catalog_parts(id,release_id,parent_id,name,kind,expected_quantity,sort_order,retired,linked_release_id,part_type,main_component) VALUES(?,?,?,?,?,?,?,0,?,?,?) ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,name=excluded.name,kind=excluded.kind,expected_quantity=excluded.expected_quantity,sort_order=excluded.sort_order,retired=0,linked_release_id=excluded.linked_release_id,part_type=excluded.part_type,main_component=excluded.main_component WHERE catalog_parts.release_id=excluded.release_id`).bind(p.id, id, p.parentId, p.name, p.kind, p.expectedQuantity, p.sortOrder, p.linkedReleaseId,p.partType,Number(p.mainComponent)));
     statements.push(store.prepare('DELETE FROM release_characters WHERE release_id=?').bind(id));
     r.characters.forEach((c,i)=>statements.push(store.prepare('INSERT INTO release_characters(id,release_id,name,part_id,sort_order) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),id,c.name,c.partId,i)));
     for (const c of r.fileCards)

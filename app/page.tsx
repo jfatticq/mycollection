@@ -15,6 +15,7 @@ import { requestJSON, ApiError } from '@/lib/api-client';
 import { newDraft, draftFromEntry, quickChoice, nullableQuantity } from '@/lib/collection/editor';
 import type { EntryDraft, OwnedEntry, Release, CatalogDetail } from '@/lib/collection/editor';
 import './catalog-interface.css';
+import {partTypeLabels,PartType} from '@/lib/catalog-parts';
 type Account = {
     userId: string;
     collectionId: string;
@@ -242,12 +243,12 @@ export default function Home() {
                 setDetailLoading(false);
             }
         }}><DialogContent className="editor"><DialogTitle>{detail?.release.name ?? 'Release details'}</DialogTitle><DialogDescription>Catalog information, expected parts and reference images for this release.</DialogDescription>{detailLoading && <p role="status">Loading release…</p>}{detailError && <p role="alert">{detailError}</p>}{detail && <>
-      <p>{detail.release.year ?? 'Year unknown'} · {detail.release.line ?? 'Line not recorded'} · {detail.release.kind}{detail.release.retired ? ' · Retired' : ''}</p>
+      <p>{detail.release.year ?? 'Year unknown'} · {detail.release.line ?? 'Line not recorded'} · {detail.release.kind}{detail.release.retired ? ' · Archived' : ''}</p>
       <dl className="release-metadata">{[['Series', 'series'], ['Sub-series', 'sub_series'], ['Wave', 'wave'], ['Scale', 'scale'], ['Market', 'market'], ['Manufacturer', 'manufacturer'], ['Product code', 'product_code'], ['UPC', 'upc']].map(([label, key]) => detail.release[key] != null && <div key={key}><dt>{label}</dt><dd>{String(detail.release[key])}</dd></div>)}</dl>
       <section><h3>Characters</h3>{detail.characters.length?<ul>{detail.characters.map((c,i)=><li key={i}>{c.name}{c.partId?' — '+(detail.parts.find(p=>p.id===c.partId)?.name??'Historical catalog part'):''}</li>)}</ul>:<p>No characters assigned.</p>}<h3>Factions</h3>{detail.factions.length?<ul>{detail.factions.map((f,i)=><li key={f.id??i}>{f.name}{f.parent_id?' — '+(terms.find(t=>t.id===f.parent_id)?.name??'Parent faction'):''}</li>)}</ul>:<p>No factions assigned.</p>}</section>
       {typeof detail.release.retail_price_cents === 'number' && <p>Original retail price: {new Intl.NumberFormat('en-US', { style: 'currency', currency: String(detail.release.retail_currency ?? 'USD') }).format(detail.release.retail_price_cents / 100)}</p>}
       {!!detail.images.length && <div className="owner-photo-grid">{detail.images.map(image => <ZoomableImage key={image.link_id} src={image.url} title={detail.parts.find(p => p.id === image.part_id)?.name ?? (image.file_card_id ? 'File card' : detail.release.name)}/>)}</div>}
-      <h3>Expected parts</h3>{detail.parts.length ? <ul>{detail.parts.map(part => <li key={part.id}>{part.parent_id && <span>{detail.parts.find(p => p.id === part.parent_id)?.name} / </span>}{part.name} · {part.expected_quantity ?? 'Quantity unknown'} per release</li>)}</ul> : <p>No parts list has been entered yet.</p>}
+      <h3>Contents / Parts</h3>{detail.parts.length ? <ul>{detail.parts.map(part => <li key={part.id}>{part.parent_id && <span>{detail.parts.find(p => p.id === part.parent_id)?.name} / </span>}<strong>{part.name}</strong> · {partTypeLabels[part.part_type as PartType]??'Other Part'} · {part.expected_quantity ?? 'Quantity unknown'} per catalog item{part.main_component?' · Main component':''}{part.linked_release_id&&<div>Component reference: <button type="button" className="outline" onClick={()=>openRelease(part.linked_release_id!)}>{part.linked_release_name??'View catalog item'}</button></div>}</li>)}</ul> : <p>No parts list has been entered yet.</p>}
       {detail.fileCards.map(card => <section className="file-card" key={card.id}><h3>File card</h3><p>{card.text || 'Text not entered yet.'}</p></section>)}
       {!!detail.related.length && <section><h3>Related releases</h3>{detail.related.map(r => <button className="outline" key={r.id + r.kind} onClick={() => openRelease(r.id)}>{r.name} · {r.kind}</button>)}</section>}
       {account && <><ReleaseCounts id={detail.release.id}/><p><a href={'/discussions?release=' + encodeURIComponent(detail.release.id)}>Discuss this release</a></p></>}

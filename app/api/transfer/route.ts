@@ -19,7 +19,7 @@ export async function GET(request: Request) {
         let items: any[] = [];
         let mediaMapping: any[] = [];
         if (p.get('template') === 'true')
-            items = [kind === 'catalog' ? { ...blankRelease(), name: 'Replace with release name', parts: [{ id: 'replace-with-unique-part-id', name: 'Primary toy', kind: 'primary', parentId: null, expectedQuantity: 1, sortOrder: 0, linkedReleaseId: null }] } : { ...newDraft(), name: 'Replace with item name' }];
+            items = [kind === 'catalog' ? { ...blankRelease(), name: 'Replace with catalog item name', parts: [{ id: 'replace-with-unique-part-id', name: 'Main figure', kind: 'primary', partType:'figure',mainComponent:true, parentId: null, expectedQuantity: 1, sortOrder: 0, linkedReleaseId: null }] } : { ...newDraft(), name: 'Replace with item name' }];
         else if (kind === 'collection') {
             const owned = await entries(a.collectionId, true);
             items = owned.map(e => { const { photos, ...draft } = draftFromEntry(e as OwnedEntry); return draft; });

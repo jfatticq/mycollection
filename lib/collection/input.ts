@@ -20,6 +20,7 @@ export const entryInput = z.object({
 export type Part = {
     id: string;
     kind: string;
+    main_component?:number|null;
     expected_quantity: number | null;
     retired: number;
 };
@@ -39,7 +40,7 @@ export function validateParts(item: z.infer<typeof entryInput>, parts: Part[], n
         if (item.packaging !== 'present' || parts.some(p => !p.retired && (item.parts.find(q => q.partId === p.id)?.quantity ?? -1) < p.expected_quantity!))
             throw new AccessError(400, 'Complete requires original packaging and every expected part.');
     }
-    const primary = parts.filter(p => p.kind === 'primary' && !p.retired);
+    const primary = parts.filter(p => (p.main_component==null?p.kind==='primary':!!p.main_component) && !p.retired);
     const quantities = primary.map(p => item.parts.find(q => q.partId === p.id)?.quantity ?? null);
     const anyPrimary = quantities.some(q => q !== null && q > 0);
     const noPrimary = quantities.length > 0 && quantities.every(q => q === 0);
