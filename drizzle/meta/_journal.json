@@ -43,6 +43,13 @@
       "when": 1791559824089,
       "tag": "0005_bent_jackal",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792377976561,
+      "tag": "0006_brave_risque",
+      "breakpoints": true
     }
   ]
 }

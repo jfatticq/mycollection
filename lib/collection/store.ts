@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import {inheritedFactions} from '@/lib/catalog-associations';
 import { Actor, AccessError } from '@/lib/auth/access';
 import { entryInput, validateParts, Part } from './input';
 export async function entries(collectionId: string, own: boolean) {
@@ -9,17 +10,19 @@ export async function entries(collectionId: string, own: boolean) {
     const loose = await db().prepare(`SELECT p.* FROM unidentified_parts p JOIN owned_entries e ON e.id=p.entry_id WHERE e.collection_id=?`).bind(collectionId).all<Record<string, any>>();
     const photos = await db().prepare(`SELECT l.entry_id,m.id FROM media_links l JOIN media m ON m.id=l.media_id JOIN owned_entries e ON e.id=l.entry_id JOIN collections c ON c.id=e.collection_id WHERE e.collection_id=? AND m.scope='collection' AND m.collection_id=c.id AND m.owner_id=c.user_id ORDER BY l.sort_order,l.id`).bind(collectionId).all<Record<string, any>>();
     const terms=await db().prepare('SELECT DISTINCT rt.release_id,rt.taxonomy_id FROM release_taxonomy rt JOIN owned_entries e ON e.release_id=rt.release_id WHERE e.collection_id=?').bind(collectionId).all<{release_id:string;taxonomy_id:string}>();
-    return rows.results.map(e => ({
+    const factionTerms=(await db().prepare("SELECT id,name,kind,parent_id FROM taxonomy WHERE kind='faction'").all<any>()).results;
+    const directFactions=(await db().prepare("SELECT DISTINCT rt.release_id,t.name FROM release_taxonomy rt JOIN taxonomy t ON t.id=rt.taxonomy_id JOIN owned_entries e ON e.release_id=rt.release_id WHERE e.collection_id=? AND t.kind='faction'").bind(collectionId).all<any>()).results;
+    return rows.results.map(e => {const names=directFactions.filter(f=>f.release_id===e.release_id).map(f=>f.name);const inherited=inheritedFactions(names.length?names:e.faction?[e.faction]:[],factionTerms);return ({
         id: e.id, name: e.name, releaseId: e.release_id, quantity: 1, ownership: e.ownership,
         condition: e.condition, completeness: e.completeness, packaging: e.packaging, sealed: e.sealed === null ? null : !!e.sealed,
         reviewedRevision: e.reviewed_revision, needsReview: e.release_id !== null && e.reviewed_revision !== e.catalog_revision,
         line: e.line, year: e.year,kind:e.kind,character:e.character,series:e.series,sub_series:e.sub_series,wave:e.wave,scale:e.scale,faction:e.faction,market:e.market,manufacturer:e.manufacturer,product_code:e.product_code,upc:e.upc,
-        taxonomyIds:terms.results.filter(t=>t.release_id===e.release_id).map(t=>t.taxonomy_id),
+        factionIds:inherited.ids,factionNames:inherited.names,taxonomyIds:[...new Set([...terms.results.filter(t=>t.release_id===e.release_id).map(t=>t.taxonomy_id),...inherited.ids])],
         parts: parts.results.filter(p => p.entry_id === e.id).map(p => ({ partId: p.part_id, label: p.label, quantity: p.quantity, condition: p.condition, defects: p.defects,expectedQuantity:p.expected_quantity,retired:!!p.retired })),
         unidentifiedParts: loose.results.filter(p => p.entry_id === e.id).map(p => ({ name: p.name, quantity: p.quantity, condition: p.condition, defects: p.defects })),
         photos: photos.results.filter(p => p.entry_id === e.id).map(p => '/api/photo?id=' + p.id),
         ...(own ? { notes: e.private_notes, location: e.location, acquiredAt: e.acquired_at, purchasePriceCents: e.purchase_price_cents, purchaseCurrency: e.purchase_currency, purchaseSource: e.purchase_source } : {}),
-    }));
+    });});
 }
 export async function prepareEntry(a: Actor, input: unknown) {
     const parsed = entryInput.safeParse(input);

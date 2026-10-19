@@ -3,6 +3,7 @@ import { actor, administrator, mutation, json, failure, AccessError } from '@/li
 import { saveRelease } from '@/lib/catalog-store';
 import { releaseDetail } from '@/lib/catalog-read';
 import { limit,bodyJSON } from '@/lib/limits';
+import {factionFilterSQL} from '@/lib/catalog-associations';
 export async function GET(request: Request) {
     try {
         const p = new URL(request.url).searchParams, id = p.get('id');
@@ -16,8 +17,10 @@ export async function GET(request: Request) {
         const includeRetired=p.get('includeRetired')==='true';if(includeRetired)await administrator(request);
         const where = [includeRetired?'1=1':'r.retired=0', '(r.name LIKE ? OR r.character LIKE ? OR r.product_code LIKE ? OR r.upc LIKE ?)'];
         const parameters: (string | number)[] = Array(4).fill('%'+q+'%');
-        for(const column of ['kind','series','sub_series','wave','scale','faction','market','manufacturer'])if(p.get(column)){where.push(`r.${column}=?`);parameters.push(p.get(column)!);}
-        if(p.get('taxonomyId')){where.push('EXISTS(SELECT 1 FROM release_taxonomy rt WHERE rt.release_id=r.id AND rt.taxonomy_id=?)');parameters.push(p.get('taxonomyId')!);}
+        for(const column of ['kind','series','sub_series','wave','scale','market','manufacturer'])if(p.get(column)){where.push(`r.${column}=?`);parameters.push(p.get(column)!);}
+        if(p.get('character')){where.push('(EXISTS(SELECT 1 FROM release_characters c WHERE c.release_id=r.id AND c.name=? COLLATE NOCASE) OR r.character=? COLLATE NOCASE)');parameters.push(p.get('character')!,p.get('character')!);}
+        if(p.get('faction')){where.push(`(${factionFilterSQL()} OR (r.faction=? COLLATE NOCASE AND NOT EXISTS(SELECT 1 FROM release_taxonomy rt JOIN taxonomy t ON t.id=rt.taxonomy_id WHERE rt.release_id=r.id AND t.kind='faction')))`);parameters.push(p.get('faction')!,p.get('faction')!,p.get('faction')!);}
+        if(p.get('taxonomyId')){const term=await db().prepare('SELECT kind FROM taxonomy WHERE id=?').bind(p.get('taxonomyId')!).first<{kind:string}>();if(term?.kind==='faction'){where.push(factionFilterSQL());parameters.push(p.get('taxonomyId')!,p.get('taxonomyId')!);}else{where.push('EXISTS(SELECT 1 FROM release_taxonomy rt WHERE rt.release_id=r.id AND rt.taxonomy_id=?)');parameters.push(p.get('taxonomyId')!);}}
         const sort={name:'r.name,r.year,r.id',year:'r.year,r.name,r.id',newest:'r.year DESC,r.name,r.id'}[p.get('sort')??'year']??'r.year,r.name,r.id';
         if (p.get('line')) {
             where.push('r.line=?');

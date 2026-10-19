@@ -20,6 +20,8 @@ export type Release = {
     ownership_status?: string;
 };
 export type CatalogDetail = {
+    characters:{name:string;partId:string|null}[];
+    factions:{id:string|null;name:string;parent_id:string|null}[];
     release: Release & Record<string, unknown>;
     parts: CatalogPart[];
     fileCards: {

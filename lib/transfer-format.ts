@@ -1,6 +1,6 @@
 export const collectionColumns = ['id', 'releaseId', 'name', 'ownership', 'condition', 'completeness', 'packaging', 'sealed', 'reviewedRevision', 'notes', 'location', 'acquiredAt', 'purchasePriceCents', 'purchaseCurrency', 'purchaseSource', 'parts', 'unidentifiedParts'];
-export const catalogColumns = ['id', 'expectedRevision', 'name', 'kind', 'character', 'year', 'line', 'series', 'subSeries', 'wave', 'scale', 'faction', 'market', 'manufacturer', 'productCode', 'upc', 'retailPriceCents', 'retailCurrency', 'retired', 'parts', 'fileCards', 'taxonomyIds', 'related'];
-const structured = new Set(['parts', 'unidentifiedParts', 'fileCards', 'taxonomyIds', 'related']);
+export const catalogColumns = ['id', 'expectedRevision', 'name', 'kind', 'characters', 'factions', 'character', 'year', 'line', 'series', 'subSeries', 'wave', 'scale', 'faction', 'market', 'manufacturer', 'productCode', 'upc', 'retailPriceCents', 'retailCurrency', 'retired', 'parts', 'fileCards', 'taxonomyIds', 'related'];
+const structured = new Set(['characters', 'factions', 'parts', 'unidentifiedParts', 'fileCards', 'taxonomyIds', 'related']);
 const numeric = new Set(['expectedRevision', 'year', 'retailPriceCents', 'purchasePriceCents', 'reviewedRevision']);
 export function csvEncode(rows: Record<string, any>[], kind: string) {
     const columns = ['schemaVersion', 'transferKind', ...(kind === 'catalog' ? catalogColumns : collectionColumns)];
@@ -86,6 +86,7 @@ export function parseTransfer(text: string, format: string, kind: string) {
                 return;
             }
             if (!value) {
+                if (['characters','factions'].includes(key)) return;
                 if (['id', 'expectedRevision', 'ownership', 'condition', 'completeness', 'packaging', 'retired'].includes(key))
                     return;
                 row[key] = structured.has(key) ? [] : ['notes'].includes(key) ? '' : null;

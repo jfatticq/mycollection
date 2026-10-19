@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { Actor, AccessError } from '@/lib/auth/access';
+import {catalogAssociations,prepareFactions} from '@/lib/catalog-associations';
 export async function mergePlan(input: any) {
     if (typeof input.sourceId !== 'string' || typeof input.targetId !== 'string' || input.sourceId === input.targetId)
         throw new AccessError(400, 'Choose two different releases.');
@@ -58,6 +59,15 @@ export async function mergeReleases(a: Actor, input: any) {
     statements.push(store.prepare('UPDATE media_links SET release_id=? WHERE release_id=?').bind(plan.target.id, plan.source.id), store.prepare('UPDATE file_cards SET release_id=? WHERE release_id=?').bind(plan.target.id, plan.source.id));
     statements.push(store.prepare('INSERT OR IGNORE INTO release_taxonomy(release_id,taxonomy_id) SELECT ?,taxonomy_id FROM release_taxonomy WHERE release_id=?').bind(plan.target.id, plan.source.id), store.prepare('INSERT OR IGNORE INTO release_links(release_id,related_id,kind) SELECT ?,related_id,kind FROM release_links WHERE release_id=? AND related_id<>?').bind(plan.target.id, plan.source.id, plan.target.id), store.prepare('INSERT OR IGNORE INTO release_links(release_id,related_id,kind) SELECT release_id,?,kind FROM release_links WHERE related_id=? AND release_id<>?').bind(plan.target.id, plan.source.id, plan.target.id), store.prepare('DELETE FROM release_links WHERE release_id=? OR related_id=?').bind(plan.source.id, plan.source.id));
     const now = new Date().toISOString();
+    const sourceAssociations=await catalogAssociations(plan.source),targetAssociations=await catalogAssociations(plan.target);
+    const mergedCharacters=[...targetAssociations.characters,...sourceAssociations.characters.map(c=>({...c,partId:c.partId?ids.get(c.partId)??null:null}))];
+    const seenCharacters=new Set<string>();
+    statements.push(store.prepare('DELETE FROM release_characters WHERE release_id=?').bind(plan.target.id));
+    mergedCharacters.forEach((c,i)=>{const key=c.name.toLowerCase()+'\0'+(c.partId??'');if(!seenCharacters.has(key)){seenCharacters.add(key);statements.push(store.prepare('INSERT INTO release_characters(id,release_id,name,part_id,sort_order) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),plan.target.id,c.name,c.partId,i));}});
+    const factionNames=[...new Set([...targetAssociations.factions,...sourceAssociations.factions].map(f=>f.name))];
+    const factionTerms=await prepareFactions(factionNames);statements.push(...factionTerms.statements);
+    for(const factionId of new Set(factionTerms.ids))statements.push(store.prepare('INSERT OR IGNORE INTO release_taxonomy(release_id,taxonomy_id) VALUES(?,?)').bind(plan.target.id,factionId));
+    statements.push(store.prepare('UPDATE catalog_releases SET character=?,faction=? WHERE id=?').bind([...new Set(mergedCharacters.map(c=>c.name))].join(', ')||null,factionNames.join(', ')||null,plan.target.id));
     statements.push(store.prepare('UPDATE catalog_releases SET retired=1,revision=revision+1,updated_at=? WHERE id=?').bind(now, plan.source.id), store.prepare('UPDATE catalog_releases SET revision=revision+1,updated_at=? WHERE id=?').bind(now, plan.target.id), store.prepare('INSERT INTO catalog_merges(source_id,target_id,mapping,created_at) VALUES(?,?,?,?)').bind(plan.source.id, plan.target.id, JSON.stringify(Object.fromEntries(ids)), now));
     for (const release of [plan.source, plan.target])
         statements.push(store.prepare('INSERT INTO catalog_revisions(release_id,revision,snapshot,actor_id,created_at) VALUES(?,?,?,?,?)').bind(release.id, release.revision + 1, JSON.stringify({ operation: 'merge', sourceId: plan.source.id, targetId: plan.target.id, mapping: Object.fromEntries(ids) }), a.id, now));

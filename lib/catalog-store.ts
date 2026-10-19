@@ -1,19 +1,22 @@
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { Actor, AccessError } from '@/lib/auth/access';
+import {prepareFactions} from '@/lib/catalog-associations';
 const short = z.string().trim().max(200).nullable().default(null);
 const part = z.object({ id: z.string().min(1).max(128), parentId: z.string().min(1).max(128).nullable().default(null), name: z.string().trim().min(1).max(200), kind: z.enum(['primary', 'accessory', 'packaging', 'paperwork']), expectedQuantity: z.number().int().min(0).max(9999).nullable(), sortOrder: z.number().int().min(0).max(1000).default(0), linkedReleaseId: z.string().min(1).max(128).nullable().default(null) }).strict();
 export const releaseInput = z.object({
     id: z.string().min(1).max(128).optional(), expectedRevision: z.number().int().positive().optional(),
     name: z.string().trim().min(1).max(200), kind: z.enum(['figure', 'vehicle', 'playset', 'accessory', 'multipack', 'other']),
     character: short, year: z.number().int().min(1960).max(2200).nullable().default(null), line: short,
+    characters:z.array(z.object({name:z.string().trim().min(1).max(200),partId:z.string().min(1).max(128).nullable().default(null)}).strict()).max(100).optional(),
+    factions:z.array(z.string().trim().min(1).max(200)).max(100).optional(),
     series: short, subSeries: short, wave: short, scale: short, faction: short, market: short, manufacturer: short, productCode: short, upc: short,
     retailPriceCents: z.number().int().min(0).max(1000000000).nullable().default(null), retailCurrency: z.string().regex(/^[A-Z]{3}$/).nullable().default(null), retired: z.boolean().default(false),
     parts: z.array(part).max(500).default([]),
     fileCards: z.array(z.object({ id: z.string().min(1).max(128), text: z.string().max(30000) }).strict()).max(20).default([]),
     taxonomyIds: z.array(z.string().min(1).max(128)).max(100).default([]),
     related: z.array(z.object({ id: z.string().min(1).max(128), kind: z.enum(['variant','repaint','international','packaging','related']) }).strict()).max(100).default([]),
-}).strict();
+}).strict().transform(r=>({...r,characters:r.characters??(r.character?[{name:r.character,partId:null}]:[]),factions:r.factions??(r.faction?[r.faction]:[])}));
 export async function prepareRelease(a: Actor, input: unknown, allowedIds: string[] = []) {
     if (!a.isAdmin)
         throw new AccessError(403, 'Catalog administrator required.');
@@ -21,6 +24,11 @@ export async function prepareRelease(a: Actor, input: unknown, allowedIds: strin
     if (!parsed.success)
         throw new AccessError(400, 'Invalid catalog release.');
     const r = parsed.data, id = r.id ?? crypto.randomUUID(), store = db();
+    if(new Set(r.characters.map(c=>c.name.toLowerCase()+'\0'+(c.partId??''))).size!==r.characters.length||new Set(r.factions.map(f=>f.toLowerCase())).size!==r.factions.length)throw new AccessError(400,'Duplicate character association or faction.');
+    for(const c of r.characters)if(c.partId&&!r.parts.some(p=>p.id===c.partId)&&!await store.prepare('SELECT id FROM catalog_parts WHERE id=? AND release_id=? AND retired=1').bind(c.partId,id).first())throw new AccessError(400,'Character part must belong to this catalog item.');
+    for(const taxonomyId of r.taxonomyIds){const term=await store.prepare('SELECT kind,name FROM taxonomy WHERE id=?').bind(taxonomyId).first<{kind:string;name:string}>();if(term?.kind==='faction'&&!r.factions.some(f=>f.toLowerCase()===term.name.toLowerCase()))r.factions.push(term.name);}
+    const factionTerms=await prepareFactions(r.factions);
+    r.character=r.characters.map(c=>c.name).join(', ')||null;r.faction=r.factions.join(', ')||null;
     if (await store.prepare('SELECT source_id FROM catalog_merges WHERE source_id=?').bind(id).first()) throw new AccessError(409, 'This release was merged. Edit the surviving release.');
     for (const taxonomyId of r.taxonomyIds) if (!await store.prepare('SELECT id FROM taxonomy WHERE id=?').bind(taxonomyId).first()) throw new AccessError(400, 'Unknown taxonomy ID.');
     for (const related of r.related) if (related.id === id || (!allowedIds.includes(related.id) && !await store.prepare('SELECT id FROM catalog_releases WHERE id=?').bind(related.id).first())) throw new AccessError(400, 'Invalid related release.');
@@ -71,12 +79,16 @@ export async function prepareRelease(a: Actor, input: unknown, allowedIds: strin
         store.prepare('UPDATE catalog_parts SET retired=1 WHERE release_id=?').bind(id)];
     for (const p of ordered)
         statements.push(store.prepare(`INSERT INTO catalog_parts(id,release_id,parent_id,name,kind,expected_quantity,sort_order,retired,linked_release_id) VALUES(?,?,?,?,?,?,?,0,?) ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,name=excluded.name,kind=excluded.kind,expected_quantity=excluded.expected_quantity,sort_order=excluded.sort_order,retired=0,linked_release_id=excluded.linked_release_id WHERE catalog_parts.release_id=excluded.release_id`).bind(p.id, id, p.parentId, p.name, p.kind, p.expectedQuantity, p.sortOrder, p.linkedReleaseId));
+    statements.push(store.prepare('DELETE FROM release_characters WHERE release_id=?').bind(id));
+    r.characters.forEach((c,i)=>statements.push(store.prepare('INSERT INTO release_characters(id,release_id,name,part_id,sort_order) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),id,c.name,c.partId,i)));
     for (const c of r.fileCards)
         statements.push(store.prepare('INSERT INTO file_cards(id,release_id,text) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET text=excluded.text WHERE file_cards.release_id=excluded.release_id').bind(c.id, id, c.text));
     const oldCards=await store.prepare('SELECT id FROM file_cards WHERE release_id=?').bind(id).all<{id:string}>();
     for(const card of oldCards.results)if(!r.fileCards.some(c=>c.id===card.id))statements.push(store.prepare('DELETE FROM media_links WHERE file_card_id=?').bind(card.id),store.prepare('DELETE FROM file_cards WHERE id=? AND release_id=?').bind(card.id,id));
     statements.push(store.prepare('DELETE FROM release_taxonomy WHERE release_id=?').bind(id),store.prepare('DELETE FROM release_links WHERE release_id=?').bind(id));
-    for (const taxonomyId of new Set(r.taxonomyIds)) statements.push(store.prepare('INSERT INTO release_taxonomy(release_id,taxonomy_id) VALUES(?,?)').bind(id,taxonomyId));
+    statements.push(...factionTerms.statements);
+    const otherIds:string[]=[];for(const taxonomyId of r.taxonomyIds){const t=await store.prepare('SELECT kind FROM taxonomy WHERE id=?').bind(taxonomyId).first<{kind:string}>();if(t?.kind!=='faction')otherIds.push(taxonomyId);}
+    for (const taxonomyId of new Set([...otherIds,...factionTerms.ids])) statements.push(store.prepare('INSERT INTO release_taxonomy(release_id,taxonomy_id) VALUES(?,?)').bind(id,taxonomyId));
     for (const related of r.related) statements.push(store.prepare('INSERT OR IGNORE INTO release_links(release_id,related_id,kind) VALUES(?,?,?)').bind(id,related.id,related.kind));
     statements.push(store.prepare('INSERT INTO catalog_revisions(release_id,revision,snapshot,actor_id,created_at) VALUES(?,?,?,?,?)').bind(id, revision, JSON.stringify({ ...r, id, revision }), a.id, now));
     return { id, revision, statements };

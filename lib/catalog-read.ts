@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
+import {catalogAssociations} from '@/lib/catalog-associations';
 import { AccessError } from '@/lib/auth/access';
-export async function releaseDetail(id: string):Promise<{release:Record<string,any>;parts:Record<string,any>[];fileCards:Record<string,any>[];images:{id:string;link_id:string;url:string;release_id:string|null;part_id:string|null;file_card_id:string|null;sort_order:number;primary:number}[];related:Record<string,any>[];taxonomy:Record<string,any>[];redirectedFrom?:string}> {
+export async function releaseDetail(id: string):Promise<{release:Record<string,any>;characters:{name:string;partId:string|null}[];factions:{id:string|null;name:string;parent_id:string|null}[];parts:Record<string,any>[];fileCards:Record<string,any>[];images:{id:string;link_id:string;url:string;release_id:string|null;part_id:string|null;file_card_id:string|null;sort_order:number;primary:number}[];related:Record<string,any>[];taxonomy:Record<string,any>[];redirectedFrom?:string}> {
     const merge=await db().prepare('SELECT target_id FROM catalog_merges WHERE source_id=?').bind(id).first<{target_id:string}>();
     if(merge){const result=await releaseDetail(merge.target_id);return {...result,redirectedFrom:id};}
     const release = await db().prepare('SELECT * FROM catalog_releases WHERE id=?').bind(id).first();
@@ -21,5 +22,5 @@ export async function releaseDetail(id: string):Promise<{release:Record<string,a
         db().prepare('SELECT l.kind,r.id,r.name,r.year,r.line FROM release_links l JOIN catalog_releases r ON r.id=CASE WHEN l.release_id=? THEN l.related_id ELSE l.release_id END WHERE l.release_id=? OR l.related_id=?').bind(id, id, id).all(),
     ]);
     const taxonomy=await db().prepare('SELECT t.* FROM release_taxonomy rt JOIN taxonomy t ON t.id=rt.taxonomy_id WHERE rt.release_id=?').bind(id).all();
-    return { release, parts: parts.results, fileCards: fileCards.results, images: images.results.map(m => ({ ...m, url: '/api/photo?id=' + m.id })), related: related.results,taxonomy:taxonomy.results };
+    return { release, ...await catalogAssociations(release), parts: parts.results, fileCards: fileCards.results, images: images.results.map(m => ({ ...m, url: '/api/photo?id=' + m.id })), related: related.results,taxonomy:taxonomy.results };
 }
