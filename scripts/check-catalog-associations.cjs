@@ -68,6 +68,9 @@ async function upload(subject, scope = 'collection', valid = true) {
  const sub=await post('/api/taxonomy','admin-subject',{name:'Subgroup',kind:'faction',parentId:dread.id},taxonomy);
  const joe=await post('/api/taxonomy','admin-subject',{name:'G.I. Joe',kind:'faction'},taxonomy);
  const line=await post('/api/taxonomy','admin-subject',{name:'ARAH',kind:'line'},taxonomy);
+ const raceA=await post('/api/taxonomy','admin-subject',{name:'Race A',kind:'faction'},taxonomy),raceB=await post('/api/taxonomy','admin-subject',{name:'Race B',kind:'faction'},taxonomy);
+ const prepare=database.prepare;database.prepare=function(sql){if(sql.startsWith('INSERT INTO taxonomy(')){sqlite.prepare('UPDATE taxonomy SET parent_id=? WHERE id=?').run(raceA.id,raceB.id);database.prepare=prepare;}return prepare.call(this,sql);};
+ await post('/api/taxonomy','admin-subject',{id:raceA.id,name:'Race A',kind:'faction',parentId:raceB.id},taxonomy,409);assert.equal(sqlite.prepare('SELECT parent_id FROM taxonomy WHERE id=?').get(raceA.id).parent_id,null);
  await post('/api/taxonomy','admin-subject',{id:cobra.id,name:'Cobra',kind:'faction',parentId:sub.id},taxonomy,400);
  await post('/api/taxonomy','admin-subject',{id:dread.id,name:'Dreadnoks',kind:'faction',parentId:line.id},taxonomy,400);
  await post('/api/taxonomy','admin-subject',{name:'cobra',kind:'faction'},taxonomy,400);
