@@ -4,7 +4,7 @@ import { LaunchShell, useLaunchAccount, AccessNotice } from '@/components/launch
 import { requestJSON } from '@/lib/api-client';
 import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel } from '@/components/ui/alert-dialog';
 export default function Settings() {
-    const { account, error } = useLaunchAccount();
+    const { account, error, refreshAccount } = useLaunchAccount();
     const [name, setName] = useState(''), [visibility, setVisibility] = useState('private'), [status, setStatus] = useState(''), [busy, setBusy] = useState(false), [deleting, setDeleting] = useState(false), [confirmation, setConfirmation] = useState(''), [deleted, setDeleted] = useState<any>(null);
     useEffect(() => { if (account) {
         setName(account.displayName);
@@ -24,6 +24,7 @@ export default function Settings() {
     } }
     return <LaunchShell title="Profile & collection settings">{deleted ? <section className="launch-panel"><h2>Account deleted</h2><p>Your collection and identifying profile details are removed from active storage. Access is revoked.</p>{deleted.cleanup === 'pending' && <><p>Photo cleanup is pending. Your photos are already unavailable to viewers.</p><button disabled={busy} className="primary" onClick={() => remove('resumeDeletion')}>Retry photo cleanup</button></>}<a href="/signout-with-chatgpt?return_to=%2F" target="_top">Sign out</a><p role="status">{status}</p></section> : !account ? <AccessNotice error={error}/> : <section className="launch-panel"><form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setStatus(''); try {
         await requestJSON('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'profile', displayName: name, visibility }) });
+        await refreshAccount();
         setStatus('Profile and visibility saved.');
     }
     catch (e: any) {

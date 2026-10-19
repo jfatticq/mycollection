@@ -21,3 +21,18 @@ body.digital-camo{background:#222b28;color:#e5ebe4;font-family:system-ui,-apple-
 .admin-tabs [data-slot=tabs-content][data-state=inactive]{display:none}.admin-status:empty{display:none}.admin-status{margin:12px 0}.admin-guidance{margin:16px 0 20px;color:#c0ccbe}.admin-catalog-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:20px 0 24px}.admin-search{min-width:240px;flex:1;min-height:44px}.admin-search svg{flex-shrink:0}.admin-search input{min-width:0}.digital-camo .admin-catalog-actions a.outline{color:#26332c;text-decoration:none}.icon-button{width:44px;padding:10px!important}.admin-tabs .launch-panel{margin-top:16px}
 @media(max-width:600px){.admin-search{flex-basis:100%;min-width:0}.digital-camo .admin-tabs [data-slot=tabs-trigger]{font-size:14px;padding:10px 12px}}
 @media(max-width:750px){.digital-camo main>header{margin:0 -16px;padding:20px 16px;gap:16px}.digital-camo .account-actions{gap:12px}.digital-camo .account-actions a{font-size:14px}.digital-camo .filter-details>div{left:0;right:auto}}
+
+/* Keep the collector identity in the top-right on every page. */
+.digital-camo main>header.collector-site-header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px 24px}
+.collector-site-header>.brand{grid-column:1;grid-row:1;min-width:0}
+.collector-site-header>.account-actions{grid-column:1/-1;grid-row:2;margin:0;width:auto}
+.collector-account-trigger,.collector-account-status{grid-column:2;grid-row:1;justify-self:end;max-width:min(48vw,320px)}
+.digital-camo .collector-account-trigger{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;min-height:44px;padding:8px 12px;border:1px solid #a0b07c;border-radius:6px;background:#202b24;color:#f4f6ed;font-size:16px;font-weight:700;cursor:pointer}
+.collector-account-trigger>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.collector-account-trigger>svg{flex-shrink:0}
+.collector-account-status{color:#f4f6ed;font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.digital-camo .collector-account-status a,.collector-account-status button{color:#f4f6ed}
+.collector-account-menu{min-width:180px;max-width:calc(100vw - 32px);z-index:10000;background:#fff;color:#222b28;border:1px solid #a0b07c;border-radius:6px;padding:6px;box-shadow:0 10px 30px #0005}
+.collector-account-menu [role=menuitem]{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 12px;color:#222b28;font-size:16px;text-decoration:none;cursor:pointer}
+.collector-account-menu [role=menuitem][data-highlighted]{background:#e5ebdf;color:#222b28;outline:none}
+@media(max-width:600px){.digital-camo main>header.collector-site-header{gap:12px}.digital-camo .collector-account-trigger{max-width:48vw;padding:8px;font-size:14px}}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CollectorAccountProvider } from "@/components/collector-account";
 import "./globals.css";
 import "./armory-design.css";
 import "./digital-camo.css";
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased digital-camo">{children}</body>
+      <body className="antialiased digital-camo"><CollectorAccountProvider>{children}</CollectorAccountProvider></body>
     </html>
   );
 }
