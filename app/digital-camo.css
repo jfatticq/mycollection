@@ -39,3 +39,5 @@ body.digital-camo{background:#222b28;color:#e5ebe4;font-family:system-ui,-apple-
 @media(max-width:600px){.digital-camo main>header.collector-site-header{gap:12px}.digital-camo .collector-account-trigger{max-width:48vw;padding:8px;font-size:14px}}
 
 .catalog-associations{margin:24px 0;padding:20px;border:1px solid #c9ceca;border-radius:6px}.catalog-associations .association-row{align-items:end;margin:16px 0}.catalog-associations li{margin:8px 0}.catalog-associations li button{margin-left:12px}.catalog-associations .formgrid select{min-width:0;width:100%}
+
+.catalog-save-actions{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}.catalog-associations li label{display:inline-flex;vertical-align:middle;flex-direction:column;gap:6px;max-width:100%}.catalog-associations li input{min-height:44px;max-width:100%}
