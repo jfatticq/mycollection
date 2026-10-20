@@ -26,6 +26,32 @@ export const catalogFactionHierarchy: readonly (readonly [string, string | null]
 ];
 
 const initialized = new WeakMap<D1Database, Promise<void>>();
+export const ninjaForceSetupKey = 'catalog-ninja-force-sides-2026-10-20';
+
+async function initializeNinjaForce(database: D1Database) {
+  if (await database.prepare('SELECT id FROM settings WHERE id=?').bind(ninjaForceSetupKey).first()) return;
+  const statements: D1PreparedStatement[] = [];
+  // Rename the existing Joe term in place so item associations retain their ID.
+  statements.push(database.prepare(`UPDATE taxonomy SET name='Ninja Force (G.I. Joe)'
+    WHERE kind='faction' AND name='Ninja Force' COLLATE NOCASE
+    AND NOT EXISTS(SELECT 1 FROM taxonomy WHERE kind='faction' AND name='Ninja Force (G.I. Joe)' COLLATE NOCASE)
+    AND NOT EXISTS(SELECT 1 FROM settings WHERE id=?)`).bind(ninjaForceSetupKey));
+  for (const [name, parent] of [['Ninja Force (G.I. Joe)', 'G.I. Joe'], ['Ninja Force (Cobra)', 'Cobra']]) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(name.toLowerCase()));
+    const id = 'faction_' + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    statements.push(database.prepare(`INSERT INTO taxonomy(id,kind,name,parent_id)
+      SELECT ?,'faction',?,(SELECT id FROM taxonomy WHERE kind='faction' AND name=? COLLATE NOCASE LIMIT 1)
+      WHERE NOT EXISTS(SELECT 1 FROM taxonomy WHERE kind='faction' AND name=? COLLATE NOCASE)
+      AND NOT EXISTS(SELECT 1 FROM settings WHERE id=?)`).bind(id, name, parent, name, ninjaForceSetupKey));
+    statements.push(database.prepare(`UPDATE taxonomy SET parent_id=(SELECT id FROM taxonomy
+      WHERE kind='faction' AND name=? COLLATE NOCASE LIMIT 1)
+      WHERE kind='faction' AND name=? COLLATE NOCASE
+      AND NOT EXISTS(SELECT 1 FROM settings WHERE id=?)`).bind(parent, name, ninjaForceSetupKey));
+  }
+  statements.push(database.prepare('INSERT INTO settings(id,data) VALUES(?,?) ON CONFLICT(id) DO NOTHING')
+    .bind(ninjaForceSetupKey, JSON.stringify({ completed: true })));
+  await database.batch(statements);
+}
 
 async function initialize(database: D1Database) {
   if (await database.prepare('SELECT id FROM settings WHERE id=?').bind(factionSetupKey).first()) return;
@@ -55,7 +81,7 @@ async function initialize(database: D1Database) {
 export function ensureCatalogFactions(database: D1Database): Promise<void> {
   let pending = initialized.get(database);
   if (!pending) {
-    pending = initialize(database).catch(error => { initialized.delete(database); throw error; });
+    pending = initialize(database).then(() => initializeNinjaForce(database)).catch(error => { initialized.delete(database); throw error; });
     initialized.set(database, pending);
   }
   return pending;
