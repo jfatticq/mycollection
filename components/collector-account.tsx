@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, LogOut, Settings } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { requestJSON } from '@/lib/api-client';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
@@ -30,7 +31,8 @@ export function useCollectorAccount() {
 
 export function CollectorAccountMenu() {
   const { account, loading, error, refreshAccount } = useCollectorAccount();
+  const pathname = usePathname();
   if (loading) return <span className="collector-account-status" role="status">Loading account…</span>;
   if (!account) return <div className="collector-account-status"><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Sign in</a>{error && <button type="button" onClick={() => void refreshAccount()}>Retry account</button>}</div>;
-  return <DropdownMenu><DropdownMenuTrigger className="collector-account-trigger" aria-label={`Collector menu: ${account.displayName || 'Collector'}`}><span>{account.displayName || 'Collector'}</span><ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger><DropdownMenuContent align="end" className="collector-account-menu"><DropdownMenuItem asChild><a href="/signout-with-chatgpt?return_to=%2F" target="_top"><LogOut size={16} aria-hidden="true" />Sign out</a></DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+  return <DropdownMenu><DropdownMenuTrigger className="collector-account-trigger" data-current={pathname === '/settings' || undefined} aria-label={`Collector menu: ${account.displayName || 'Collector'}`}><span>{account.displayName || 'Collector'}</span><ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger><DropdownMenuContent align="end" className="collector-account-menu"><DropdownMenuItem asChild><a href="/settings" aria-current={pathname === '/settings' ? 'page' : undefined}><Settings size={16} aria-hidden="true" />Settings</a></DropdownMenuItem><DropdownMenuItem asChild><a href="/signout-with-chatgpt?return_to=%2F" target="_top"><LogOut size={16} aria-hidden="true" />Sign out</a></DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
 }

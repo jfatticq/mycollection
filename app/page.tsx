@@ -1,13 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Package, Search, Shield, Plus } from 'lucide-react';
+import { Package, Search, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import {CatalogItemTile} from '@/components/catalog-item-tile';
 import { CollectionPhoto } from '@/components/collection-photo';
 import { ZoomableImage } from '@/components/zoomable-image';
 import { ReleaseCounts } from '@/components/release-counts';
-import { CollectorAccountMenu } from '@/components/collector-account';
+import { SiteHeader } from '@/components/site-header';
 import { ProfileSetup } from '@/components/profile-setup';
 import { ConditionGuide } from '@/components/condition-guide';
 import { PartCondition } from '@/components/part-condition';
@@ -220,7 +220,7 @@ export default function Home() {
     const lines = [...new Set([...catalog.lines, ...items.map(e => e.line).filter((l): l is string => !!l)])].sort();
     const years = [...new Set([...catalog.years, ...items.map(e => e.year).filter((y): y is number => y !== null)])].sort((a, b) => a - b);
     return <main>
-    <header className="collector-site-header"><a className="brand" href="/"><Shield size={30}/><span>G.I. JEFF</span></a><div className="account-actions">{account ? <><a href="/collectors">Collectors</a><a href="/discussions">Discussions</a><a href="/notifications">Notifications</a><a href="/settings">Settings</a><a href="/transfer">Import / export</a>{account.role === 'admin' && <a href="/admin">Add / edit catalog items</a>}</> : null}</div><CollectorAccountMenu/></header>
+    <SiteHeader catalogView={view}/>
     {account?.needsSetup && <ProfileSetup onSave={() => void loadAccount()}/>}
     <section className="intro"><div><p className="eyebrow">COLLECTOR FILES</p><h1>{view === 'collection' ? 'My collection' : view === 'unowned' ? 'Unowned releases' : 'Reference catalog'}</h1><p className="sub">{view === 'collection' ? 'Each copy has its own condition, parts and photos.' : 'Explore figures, vehicles, playsets and their parts.'}</p></div>{account && <button className="primary" onClick={() => { setEditCatalog(null); setLabels({}); setEditError(''); setLooseName(''); setEdit(newDraft()); }}><Plus size={18}/> Add unidentified item</button>}</section>
     {accountError && <p role="alert" className="notice">{accountError} <button onClick={loadAccount}>Retry sign-in check</button></p>}
