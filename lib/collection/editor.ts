@@ -1,3 +1,4 @@
+import type {TileAttributes} from '@/lib/catalog-tile-attributes';
 import type { z } from 'zod';
 import type { entryInput } from './input';
 export type EntryDraft = z.infer<typeof entryInput>;
@@ -22,6 +23,9 @@ export type Release = {
     retired: number;
     image_id?: string | null;
     ownership_status?: string;
+    scale?:string|null;
+    market?:string|null;
+    tileAttributes?:TileAttributes;
 };
 export type CatalogDetail = {
     characters:{name:string;partId:string|null}[];

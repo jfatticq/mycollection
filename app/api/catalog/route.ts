@@ -1,3 +1,4 @@
+import {catalogTileAttributes} from '@/lib/catalog-tile-attributes';
 import { db } from '@/lib/db';
 import { actor, administrator, mutation, json, failure, AccessError } from '@/lib/auth/access';
 import { saveRelease } from '@/lib/catalog-store';
@@ -53,7 +54,14 @@ export async function GET(request: Request) {
                 year: number;
             }>(),
         ]);
-        return json({ releases: rows.results, total: total?.count ?? 0, limit, offset, lines: lines.results.map(r => r.line), years: years.results.map(r => r.year) });
+        const page=rows.results as any[],ids=page.map(row=>row.id),slots=ids.map(()=>'?').join(',');
+        const [parts,factions,cards]=ids.length?await Promise.all([
+            db().prepare('SELECT release_id,kind,part_type,expected_quantity FROM catalog_parts WHERE retired=0 AND release_id IN('+slots+')').bind(...ids).all<any>(),
+            db().prepare("SELECT rt.release_id,t.name FROM release_taxonomy rt JOIN taxonomy t ON t.id=rt.taxonomy_id WHERE t.kind='faction' AND rt.release_id IN("+slots+") ORDER BY t.name").bind(...ids).all<any>(),
+            db().prepare('SELECT DISTINCT release_id FROM file_cards WHERE release_id IN('+slots+')').bind(...ids).all<any>(),
+        ]):[{results:[]},{results:[]},{results:[]}];
+        const releases=page.map(row=>({...row,tileAttributes:catalogTileAttributes(row,parts.results.filter(part=>part.release_id===row.id),factions.results.filter(faction=>faction.release_id===row.id).map(faction=>faction.name),cards.results.some(card=>card.release_id===row.id))}));
+        return json({ releases, total: total?.count ?? 0, limit, offset, lines: lines.results.map(r => r.line), years: years.results.map(r => r.year) });
     }
     catch (e) {
         return failure(e);
