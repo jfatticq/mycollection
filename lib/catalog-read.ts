@@ -1,4 +1,5 @@
 import {physicalPartType} from '@/lib/catalog-parts';
+import {classifyContents} from '@/lib/catalog-classification';
 import { db } from '@/lib/db';
 import {catalogAssociations} from '@/lib/catalog-associations';
 import { AccessError } from '@/lib/auth/access';
@@ -23,5 +24,5 @@ export async function releaseDetail(id: string):Promise<{release:Record<string,a
         db().prepare('SELECT l.kind,r.id,r.name,r.year,r.line FROM release_links l JOIN catalog_releases r ON r.id=CASE WHEN l.release_id=? THEN l.related_id ELSE l.release_id END WHERE l.release_id=? OR l.related_id=?').bind(id, id, id).all(),
     ]);
     const taxonomy=await db().prepare('SELECT t.* FROM release_taxonomy rt JOIN taxonomy t ON t.id=rt.taxonomy_id WHERE rt.release_id=?').bind(id).all();
-    return { release, ...await catalogAssociations(release), parts: parts.results.map((p:any)=>({...p,part_type:p.part_type??physicalPartType(p.kind,String(release.kind)),main_component:p.main_component??Number(p.kind==='primary')})), fileCards: fileCards.results, images: images.results.map(m => ({ ...m, url: '/api/photo?id=' + m.id })), related: related.results,taxonomy:taxonomy.results };
+    return { release:{...release,classification_provisional:release.classification_mode==='automatic'&&classifyContents(parts.results as any[],!!release.contents_complete,String(release.kind)).provisional}, ...await catalogAssociations(release), parts: parts.results.map((p:any)=>({...p,part_type:p.part_type??physicalPartType(p.kind,String(release.kind)),main_component:p.main_component??Number(p.kind==='primary')})), fileCards: fileCards.results, images: images.results.map(m => ({ ...m, url: '/api/photo?id=' + m.id })), related: related.results,taxonomy:taxonomy.results };
 }

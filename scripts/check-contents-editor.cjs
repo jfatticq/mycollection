@@ -11,6 +11,8 @@ let parts,characters;const props={parts:[body,driver],characters:[{name:'Ace',pa
 let tree=render(Component,props),all=nodes(tree);
 all.find(n=>n.type==='button'&&n.props.children==='Add Figure').props.onClick();assert.equal(parts.at(-1).partType,'figure');assert.equal(parts.at(-1).mainComponent,false);
 all.find(n=>n.type==='button'&&n.props.children==='Add Vehicle').props.onClick();assert.equal(parts.at(-1).mainComponent,true);
+all.find(n=>n.type==='button'&&n.props.children==='Add Equipment / Battle Station').props.onClick();assert.equal(parts.at(-1).partType,'equipment');assert.equal(parts.at(-1).mainComponent,true);
+all.find(n=>n.type==='button'&&n.props.children==='Add Playset / Environment').props.onClick();assert.equal(parts.at(-1).partType,'playset');assert.equal(parts.at(-1).mainComponent,true);
 const typeSelect=all.find(n=>n.type==='select'&&n.props.value==='vehicle');typeSelect.props.onChange({target:{value:'packaging'}});assert.equal(parts[0].mainComponent,false);assert.equal(parts[0].kind,'packaging');
 const removeButtons=all.filter(n=>typeof n.type==='function'&&n.type.name==='RemoveIconButton'&&n.props.label.startsWith('Remove Part:'));assert.equal(removeButtons[0].props.disabled,true);assert.equal(removeButtons[1].props.disabled,false);removeButtons[1].props.onClick();assert.equal(parts.length,1);
 const assign=all.find(n=>n.type==='select'&&n.props['aria-label']==='Assign Legacy Name to a part');assign.props.onChange({target:{value:'driver'}});assert.equal(characters[1].partId,'driver');
