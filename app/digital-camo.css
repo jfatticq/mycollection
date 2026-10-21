@@ -83,6 +83,7 @@ body.digital-camo{background:#222b28;color:#e5ebe4;font-family:system-ui,-apple-
 .catalog-editor-tabs input[type=checkbox]{min-height:0;width:18px;height:18px;padding:0}.catalog-editor-tabs h3{font-size:17px;margin:12px 0 8px}.catalog-editor-tabs p{margin:8px 0}
 .catalog-editor-tabs [data-slot=tabs-list]{display:flex;width:100%;height:auto;min-height:40px;overflow-x:auto;justify-content:flex-start;gap:4px;margin-top:8px}
 .catalog-editor-tabs [data-slot=tabs-trigger]{flex:0 0 auto;font-size:14px;padding:8px 10px;min-height:40px}
+.catalog-editor-tabs [data-slot=tabs-list]{flex:none;min-height:48px;overflow-y:hidden}
 .catalog-editor-tabs .catalog-save-actions{flex:none;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #c9ceca;background:white;padding-top:10px;margin:0}
 .catalog-editor-tabs .catalog-save-actions>button{width:auto;flex:1;min-height:44px}.catalog-editor-tabs .editor-status:empty{display:none}
 .catalog-editor-tabs .catalog-classification{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 10px;margin:8px 0 0}
