@@ -1,12 +1,12 @@
 'use client';
 import {useState} from 'react';
-import {Archive,Boxes,Castle,Copy,Crosshair,Globe,IdCard,ListChecks,MoreHorizontal,Package,Ruler,Shield,Truck,UserRound} from 'lucide-react';
+import {Archive,Boxes,Castle,Copy,Crosshair,Globe,IdCard,ListChecks,MoreHorizontal,Package,PawPrint,Ruler,Shield,Truck,UserRound} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
 import {factionColors} from '@/lib/faction-colors';
 import type {TileAttributes} from '@/lib/catalog-tile-attributes';
 import {releaseKindLabels,type ReleaseKind} from '@/lib/catalog-classification';
 export type CatalogTileRelease={id:string;name:string;kind:string;year:number|null;line:string|null;retired:number|boolean;scale?:string|null;market?:string|null;image_id?:string|null;tileAttributes?:TileAttributes};
-const kindIcons={figure:UserRound,vehicle:Truck,equipment:Crosshair,playset:Castle,accessory:Crosshair,multipack:Boxes,mixed:Boxes,other:Package};
+const kindIcons={figure:UserRound,companion:PawPrint,vehicle:Truck,equipment:Crosshair,playset:Castle,accessory:Crosshair,multipack:Boxes,mixed:Boxes,other:Package};
 export function CatalogItemTile({release,onOpen,actionLabel='View catalog item',disabled=false,ownership}:{release:CatalogTileRelease;onOpen:()=>void;actionLabel?:string;disabled?:boolean;ownership?:string}){
  const [expanded,setExpanded]=useState(false),[copyStatus,setCopyStatus]=useState(''),[manualCopy,setManualCopy]=useState(false);
  const TypeIcon=kindIcons[release.kind as keyof typeof kindIcons]??Package;
@@ -14,7 +14,7 @@ export function CatalogItemTile({release,onOpen,actionLabel='View catalog item',
  const tags=[{key:'type',label:(classification?.label??releaseKindLabels[release.kind as ReleaseKind]??release.kind)+(classification?.provisional?' — provisional':''),Icon:TypeIcon,style:undefined as ReturnType<typeof factionColors>|undefined}];
  if(release.scale)tags.push({key:'scale',label:release.scale,Icon:Ruler,style:undefined});
  for(const faction of release.tileAttributes?.factions??[])tags.push({key:'faction-'+faction,label:faction,Icon:Shield,style:factionColors(faction)});
- if(['vehicle','equipment','playset','multipack','mixed'].includes(release.kind))for(const content of release.tileAttributes?.contents??[]){const noun={figure:'Figure',vehicle:'Vehicle',equipment:'Equipment unit',playset:'Playset'}[content.type];tags.push({key:'contents-'+content.type,label:content.quantity===null?noun+'s listed':content.quantity+' '+noun+(content.quantity===1?'':'s'),Icon:kindIcons[content.type],style:undefined});}
+ for(const content of release.tileAttributes?.contents??[]){if(content.type!=='companion'&&!['vehicle','equipment','playset','multipack','mixed'].includes(release.kind))continue;const noun={figure:'Figure',companion:'Companion',vehicle:'Vehicle',equipment:'Equipment unit',playset:'Playset'}[content.type];tags.push({key:'contents-'+content.type,label:content.quantity===null?noun+'s listed':content.quantity+' '+noun+(content.quantity===1?'':'s'),Icon:kindIcons[content.type],style:undefined});}
  if(release.market)tags.push({key:'market',label:release.market,Icon:Globe,style:undefined});
  if(release.tileAttributes?.hasFileCard)tags.push({key:'file-card',label:'File Card',Icon:IdCard,style:undefined});
  if(release.tileAttributes?.hasParts)tags.push({key:'parts',label:'Parts Listed',Icon:ListChecks,style:undefined});

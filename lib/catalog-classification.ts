@@ -1,9 +1,9 @@
 import {physicalPartType, partTypes, type PartType} from '@/lib/catalog-parts';
 
-export const releaseKinds = ['figure', 'multipack', 'vehicle', 'equipment', 'playset', 'accessory', 'mixed', 'other'] as const;
+export const releaseKinds = ['figure', 'multipack', 'companion', 'vehicle', 'equipment', 'playset', 'accessory', 'mixed', 'other'] as const;
 export type ReleaseKind = typeof releaseKinds[number];
 export const releaseKindLabels: Record<ReleaseKind, string> = {
-  figure: 'Figure', multipack: 'Figure multipack', vehicle: 'Vehicle set', equipment: 'Equipment set',
+  figure: 'Figure', multipack: 'Figure multipack', companion: 'Companion set', vehicle: 'Vehicle set', equipment: 'Equipment set',
   playset: 'Playset', accessory: 'Accessory set', mixed: 'Mixed set', other: 'Unclassified / other',
 };
 export type ClassificationPart = {
@@ -38,9 +38,10 @@ export function classifyContents(parts: ClassificationPart[], complete = false, 
   else if (counts.has('figure')) {
     const figures = counts.get('figure')!;
     kind = figures.known >= 2 ? 'multipack' : figures.unknown ? 'other' : 'figure';
-  } else if (counts.has('accessory') && !counts.has('other')) kind = 'accessory';
+  } else if (counts.has('companion')) kind = 'companion';
+  else if (counts.has('accessory') && !counts.has('other')) kind = 'accessory';
   const provisional = !complete || !counts.size || counts.has('other') || [...counts.values()].some(count => count.unknown);
-  const nouns: Record<string, [string, string]> = {figure: ['figure', 'figures'], vehicle: ['vehicle', 'vehicles'], equipment: ['equipment unit', 'equipment units'], playset: ['playset', 'playsets'], accessory: ['accessory', 'accessories'], other: ['other part', 'other parts']};
+  const nouns: Record<string, [string, string]> = {figure: ['figure', 'figures'], companion: ['companion', 'companions'], vehicle: ['vehicle', 'vehicles'], equipment: ['equipment unit', 'equipment units'], playset: ['playset', 'playsets'], accessory: ['accessory', 'accessories'], other: ['other part', 'other parts']};
   const summary = [...counts].map(([type, count]) => {
     const [one, many] = nouns[type] ?? nouns.other;
     return count.unknown ? `${many} listed (quantity unknown)` : `${count.known} ${count.known === 1 ? one : many}`;

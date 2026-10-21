@@ -11,6 +11,7 @@ let parts,characters;const props={parts:[body,driver],characters:[{name:'Ace',pa
 let tree=render(Component,props),all=nodes(tree);
 all.find(n=>n.type==='button'&&n.props.children==='Add Figure').props.onClick();assert.equal(parts.at(-1).partType,'figure');assert.equal(parts.at(-1).mainComponent,false);
 all.find(n=>n.type==='button'&&n.props.children==='Add Vehicle').props.onClick();assert.equal(parts.at(-1).mainComponent,true);
+all.find(n=>n.type==='button'&&n.props.children==='Add Animal / Companion').props.onClick();assert.equal(parts.at(-1).partType,'companion');assert.equal(parts.at(-1).mainComponent,false);
 all.find(n=>n.type==='button'&&n.props.children==='Add Equipment / Battle Station').props.onClick();assert.equal(parts.at(-1).partType,'equipment');assert.equal(parts.at(-1).mainComponent,true);
 all.find(n=>n.type==='button'&&n.props.children==='Add Playset / Environment').props.onClick();assert.equal(parts.at(-1).partType,'playset');assert.equal(parts.at(-1).mainComponent,true);
 const typeSelect=all.find(n=>n.type==='select'&&n.props.value==='vehicle');typeSelect.props.onChange({target:{value:'packaging'}});assert.equal(parts[0].mainComponent,false);assert.equal(parts[0].kind,'packaging');
@@ -44,4 +45,7 @@ assert.equal(parts[1].name,'Mainframe');assert.equal(parts[1].parentId,'body');
 assert(characters.some(c=>c.partId==='driver'&&c.name==='Mainframe'));
 assert.equal(nodes(tree).filter(n=>n.type==='input'&&n.props.id?.startsWith('figure-character-')).length,1);
 assert(html.includes('Additional characters (optional)'));
+tree=render(Component,{...props,parts:[{...driver,id:'polly',name:'',partType:'companion'}],characters:[]});
+nodes(tree).find(n=>n.type==='input'&&n.props.id==='figure-character-polly').props.onChange({target:{value:'Polly'}});assert.equal(parts[0].name,'Polly');assert(characters.some(c=>c.name==='Polly'&&c.partId==='polly'));
+tree=render(Component,{...props,parts:[],characters:[]});nodes(tree).find(n=>n.type==='button'&&n.props.children==='Add Animal / Companion').props.onClick();assert.equal(parts[0].mainComponent,true);
 console.log('PASS contents editor: figure character autofill and edits, custom part names, clearing/deduplication, multipack and legacy associations, typed parts, parent guards, references and rendered guidance.');
